@@ -2,47 +2,67 @@
 
 const Transaction = require('../models/Transaction');
 
-const ReportController = {
-  // 📊 Relatório mensal
-  async monthly(req, res) {
-    try {
-      const { month } = req.query; // YYYY-MM
-      if (!month) {
-        return res.status(400).json({ error: 'O mês (AAAA-MM) é obrigatório' });
+const generateMonthly = async (req, res) => {
+  try {
+    const { start_date, end_date } = req.query;
+
+    console.log('=== ReportController Monthly ===');
+    console.log('Period:', start_date || 'início', '→', end_date || 'fim');
+
+    const transactions = await Transaction.findAll({
+      start_date,
+      end_date
+    });
+
+    // Agrupamento por moeda
+    const currencies = {};
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    transactions.forEach(t => {
+      if (!currencies[t.currency]) {
+        currencies[t.currency] = {
+          income: 0,
+          expense: 0,
+          balance: 0,
+          transactionsCount: 0
+        };
       }
 
-      let transactions = await Transaction.findAll(); // Filtro por mês se informado 
-      if (month) { transactions = transactions.filter(tx => tx.date.startsWith(month) ); }
+      if (t.type === 'income') {
+        currencies[t.currency].income += t.amount;
+        totalIncome += t.amount;
+      } else if (t.type === 'expense') {
+        currencies[t.currency].expense += t.amount;
+        totalExpense += t.amount;
+      }
 
-      const report = {}; 
-    
-      transactions.forEach(tx => {
-        const currency = tx.currency || 'EUR';
+      currencies[t.currency].transactionsCount += 1;
+      currencies[t.currency].balance = currencies[t.currency].income - currencies[t.currency].expense;
+    });
 
-        if (!report[currency]) {
-          report[currency] = { income: 0, expense: 0, balance: 0 };
-        }
+    const totalBalance = totalIncome - totalExpense;
 
-        if (tx.type === 'income') report[currency].income += amount;
-        if (tx.type === 'expense') report[currency].expense += amount;
-      });
+    console.log('=== Monthly Report ===');
+    console.log('Currencies:', currencies);
+    console.log('Transactions:', transactions);
+    console.log('Total Income:', totalIncome);
+    console.log('Total Expense:', totalExpense);
+    console.log('Total Balance:', totalBalance);
 
-      // Calcula saldo por moeda
-      Object.keys(report).forEach(currency => {
-        report[currency].balance = report[currency].income - report[currency].expense;
-      });
-
-      return res.json({
-        month,
-        report,
-        transactionsCount: transactions.length
-      });
-
-    } catch (error) {
-      console.error('Errore nel report mensile:', error);
-      return res.status(500).json({ error: 'Errore nel report mensile' });
-    }
+    res.json({
+      currencies,
+      transactions,
+      totalIncome,
+      totalExpense,
+      totalBalance
+    });
+  } catch (err) {
+    console.error('Erro no monthly report:', err);
+    res.status(500).json({ message: 'Erro inesperado' });
   }
 };
 
-module.exports = ReportController;
+module.exports = {
+  generateMonthly
+};

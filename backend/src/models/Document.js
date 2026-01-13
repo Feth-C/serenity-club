@@ -14,18 +14,19 @@ module.exports = {
     owner_type,
     owner_id,
     file_path,
-    notes = null
+    notes = null,
+    status = 'valid' // status padrão
   }) {
     return new Promise((resolve, reject) => {
       const query = `
         INSERT INTO documents
-        (name, type, expiration_date, owner_type, owner_id, file_path, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (name, type, expiration_date, owner_type, owner_id, file_path, notes, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.run(
         query,
-        [name, type, expiration_date, owner_type, owner_id, file_path, notes],
+        [name, type, expiration_date, owner_type, owner_id, file_path, notes, status],
         function (err) {
           if (err) return reject(err);
           resolve({ id: this.lastID });
@@ -46,6 +47,7 @@ module.exports = {
       `;
       const params = [];
 
+      // Filtros disponíveis
       if (filters.owner_type) {
         query += ` AND owner_type = ?`;
         params.push(filters.owner_type);
@@ -59,6 +61,11 @@ module.exports = {
       if (filters.type) {
         query += ` AND type = ?`;
         params.push(filters.type);
+      }
+
+      if (filters.status) {
+        query += ` AND status = ?`;
+        params.push(filters.status);
       }
 
       query += ` ORDER BY id DESC`;
@@ -98,7 +105,8 @@ module.exports = {
         'owner_type',
         'owner_id',
         'file_path',
-        'notes'
+        'notes',
+        'status'
       ];
 
       const entries = Object.entries(data).filter(
@@ -110,11 +118,7 @@ module.exports = {
       const fields = entries.map(([key]) => `${key} = ?`).join(', ');
       const values = entries.map(([, val]) => val);
 
-      const query = `
-        UPDATE documents
-        SET ${fields}
-        WHERE id = ?
-      `;
+      const query = `UPDATE documents SET ${fields} WHERE id = ?`;
 
       db.run(query, [...values, id], function (err) {
         if (err) return reject(err);
@@ -138,5 +142,4 @@ module.exports = {
       );
     });
   }
-
 };

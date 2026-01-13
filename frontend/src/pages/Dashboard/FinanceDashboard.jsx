@@ -1,3 +1,5 @@
+// frontend/src/pages/Dashboard/FinanceDashboard
+
 import { Link } from 'react-router-dom';
 import useFetchList from '../../hooks/useFetchList';
 import useFinanceSummary from '../../hooks/useFinanceSummary';
@@ -5,6 +7,7 @@ import useFinanceSummary from '../../hooks/useFinanceSummary';
 import BalanceOverview from '../../components/transactions/BalanceOverview';
 import TransactionsDonut from '../../components/transactions/TransactionsDonut';
 import TransactionTable from '../../components/transactions/TransactionTable';
+import LogoutButton from '../../components/common/LogoutButton'
 
 export default function FinanceDashboard() {
     // -----------------------------
@@ -46,8 +49,12 @@ export default function FinanceDashboard() {
     });
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>Cruscotto Finanziario</h1>
+        <div style={{ padding: '20px', fontFamily: 'trebuchet ms, sans-serif' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h1>Cruscotto Finanziario</h1>
+                <LogoutButton />
+            </div>
+
             <p style={{ color: '#6b7280', marginBottom: '20px' }}>
                 Situazione di {monthLabel}
             </p>

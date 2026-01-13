@@ -1,79 +1,103 @@
-// frontend/src/pages/Reports/ReportsMonthly.jsx
-
 import { useState } from 'react';
-import useFinanceSummary from '../../hooks/useFinanceSummary';
+import useReportsMonthly from '../../hooks/useReportsMonthly';
+import TransactionsDonut from '../../components/transactions/TransactionsDonut';
+import BalanceOverview from '../../components/transactions/BalanceOverview';
 
 export default function ReportsMonthly() {
-  const [month, setMonth] = useState(
-    new Date().toISOString().slice(0, 7)
-  );
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  const { summary, loading, error } = useFinanceSummary({
-    monthly: true,
-    month
-  });
-
-  if (loading) return <p>Caricamento...</p>;
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
-  if (!summary) return null;
-
-  const { byType, transactionsCount } = summary;
-
-  // Organiza por moeda
-  const currencies = new Set([
-    ...Object.keys(byType.income || {}),
-    ...Object.keys(byType.expense || {})
-  ]);
+  const {
+    currencies,
+    transactions,
+    totalIncome,
+    totalExpense,
+    totalBalance,
+    loading,
+    error,
+    refetch
+  } = useReportsMonthly({ startDate, endDate });
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>📊 Rapporto mensile</h1>
+    <div style={{ padding: '20px' }}>
+      <h1>Relatório Mensal</h1>
 
-      <div style={{ marginBottom: 20 }}>
-        <label>Mese:</label>
+      {/* Filtro de datas */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
         <input
-          type="month"
-          value={month}
-          onChange={e => setMonth(e.target.value)}
-          style={{ marginLeft: 10 }}
+          type="date"
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
         />
+        <input
+          type="date"
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+        />
+        <button onClick={refetch}>Filtrar</button>
       </div>
 
-      <div style={{ display: 'flex', gap: 20 }}>
-        {[...currencies].map(currency => {
-          const income = byType.income?.[currency] || 0;
-          const expense = byType.expense?.[currency] || 0;
-          const balance = income - expense;
+      {loading && <p>Carregando...</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
 
-          return (
-            <div key={currency} style={card}>
-              <h3>{currency}</h3>
-              <p>🟢 Entrate: {format(income, currency)}</p>
-              <p>🔴 Spese: {format(expense, currency)}</p>
-              <hr />
-              <p><strong>💰 Balance: {format(balance, currency)}</strong></p>
-            </div>
-          );
-        })}
-      </div>
+      {!loading && !error && (
+        <>
+          {/* Overview */}
+          <BalanceOverview
+            transactions={transactions}
+            totalIncome={totalIncome}
+            totalExpense={totalExpense}
+            totalBalance={totalBalance}
+          />
 
-      <p style={{ marginTop: 20 }}>
-        Totale movimenti: {transactionsCount}
-      </p>
+          {/* Donut */}
+          <TransactionsDonut
+            transactions={transactions}
+          />
+
+          {/* Resumo por moeda */}
+          <div style={{ marginTop: '20px' }}>
+            <h2>Resumo por Moeda</h2>
+            <ul>
+              {Object.entries(currencies).map(([currency, data]) => (
+                <li key={currency}>
+                  <strong>{currency}:</strong> Income: {data.income.toFixed(2)}, Expense: {data.expense.toFixed(2)}, Balance: {data.balance.toFixed(2)}, Transações: {data.transactionsCount}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Lista de transações */}
+          <table style={{ width: '100%', marginTop: '20px', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Membro</th>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Moeda</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map(t => (
+                <tr key={t.id}>
+                  <td>{t.id}</td>
+                  <td>{t.member_name}</td>
+                  <td>{t.type}</td>
+                  <td>{t.category}</td>
+                  <td>{t.currency}</td>
+                  <td>{t.amount.toFixed(2)}</td>
+                  <td>{t.date}</td>
+                  <td>{t.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </div>
   );
 }
-
-function format(value, currency) {
-  return value.toLocaleString(
-    currency === 'CHF' ? 'de-CH' : 'it-IT',
-    { style: 'currency', currency }
-  );
-}
-
-const card = {
-  border: '1px solid #e5e7eb',
-  padding: 15,
-  borderRadius: 8,
-  minWidth: 200
-};
