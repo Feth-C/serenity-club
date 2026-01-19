@@ -1,5 +1,7 @@
 // frontend/src/pages/Dashboard/FinanceDashboard
 
+import { useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import useFetchList from '../../hooks/useFetchList';
 import useFinanceSummary from '../../hooks/useFinanceSummary';
@@ -10,43 +12,17 @@ import TransactionTable from '../../components/transactions/TransactionTable';
 import LogoutButton from '../../components/common/LogoutButton'
 
 export default function FinanceDashboard() {
-    // -----------------------------
-    // Mês atual automático (YYYY-MM)
-    // -----------------------------
+    const { user, activeUnit, setActiveUnit } = useContext(AuthContext);
+
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    // -----------------------------
-    // Todas as transações (fonte de verdade)
-    // -----------------------------
-    const {
-        items: transactions,
-        loading,
-        error
-    } = useFetchList('/transactions');
+    const { items: transactions, loading, error } = useFetchList('/transactions', { unitId: activeUnit?.id });
 
-    // -----------------------------
-    // Resumo mensal (somente para título / contexto)
-    // -----------------------------
-    const { summary } = useFinanceSummary({
-        monthly: true,
-        month
-    });
+    const { summary } = useFinanceSummary({ monthly: true, month, unitId: activeUnit?.id });
 
-    // -----------------------------
-    // Últimas 5 transações
-    // -----------------------------
-    const lastTransactions = [...transactions]
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 5);
-
-    // -----------------------------
-    // Nome do mês (italiano)
-    // -----------------------------
-    const monthLabel = new Date(`${month}-01`).toLocaleDateString('it-IT', {
-        month: 'long',
-        year: 'numeric'
-    });
+    const lastTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+    const monthLabel = new Date(`${month}-01`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
 
     return (
         <div style={{ padding: '20px', fontFamily: 'trebuchet ms, sans-serif' }}>
@@ -55,35 +31,34 @@ export default function FinanceDashboard() {
                 <LogoutButton />
             </div>
 
-            <p style={{ color: '#6b7280', marginBottom: '20px' }}>
-                Situazione di {monthLabel}
-            </p>
+            {/* Unidade ativa */}
+            {user?.units?.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <label>Unità:</label>
+                <select
+                  value={activeUnit?.id || ''}
+                  onChange={e => {
+                    const selected = user.units.find(u => u.id === Number(e.target.value));
+                    setActiveUnit(selected);
+                    localStorage.setItem('activeUnitId', selected.id);
+                  }}
+                  style={{ marginLeft: '10px', padding: '5px' }}
+                >
+                  {user.units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+            )}
 
-            {/* RESUMO FINANCEIRO (multi-moeda) */}
+            <p style={{ color: '#6b7280', marginBottom: '20px' }}>Situazione di {monthLabel}</p>
             <BalanceOverview transactions={transactions} />
-
-            {/* DONUT (multi-moeda somado) */}
-            <TransactionsDonut
-                transactions={transactions}
-                currency=""   // vazio = mostra números quando há várias moedas
-            />
-
-            {/* ÚLTIMAS TRANSAÇÕES */}
+            <TransactionsDonut transactions={transactions} currency="" />
             <div style={{ marginTop: '30px' }}>
                 <h2>Ultime transazioni</h2>
-
-                <TransactionTable
-                    transactions={lastTransactions}
-                    loading={loading}
-                />
-
+                <TransactionTable transactions={lastTransactions} loading={loading} />
                 <div style={{ marginTop: '10px' }}>
-                    <Link to="/transactions">
-                        Vedi tutte le transazioni →
-                    </Link>
+                    <Link to="/transactions">Vedi tutte le transazioni →</Link>
                 </div>
             </div>
-
             {error && <p style={{ color: 'red' }}>{error}</p>}
         </div>
     );

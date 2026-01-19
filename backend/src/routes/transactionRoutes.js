@@ -14,8 +14,8 @@ router.use(auth);
 
 // Rotas CRUD
 router.post('/', role(['admin', 'manager']), validate(transactionCreateSchema), TransactionController.create);
-router.get('/', role(['admin', 'manager']), TransactionController.list);
-router.get('/:id', role(['admin', 'manager']), TransactionController.get);
+router.get('/', role(['admin', 'manager']), TransactionController.findAll);
+router.get('/:id', role(['admin', 'manager']), TransactionController.findById);
 router.put('/:id', role(['admin', 'manager']), validate(transactionUpdateSchema), TransactionController.update);
 router.delete('/:id', role(['admin']), TransactionController.delete);
 

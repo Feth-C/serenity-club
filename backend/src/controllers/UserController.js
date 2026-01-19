@@ -42,7 +42,7 @@ module.exports = {
                 total: users.length
             }
         });
-        
+
         //res.json(formatResponse(users));
     },
 

@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS reports (
 db.run(`
 CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  unit_id INTEGER,
   member_id INTEGER,
   type TEXT NOT NULL CHECK(type IN ('income','expense')),
   category TEXT,
@@ -106,8 +107,72 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_by INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(member_id) REFERENCES members(id),
-  FOREIGN KEY(created_by) REFERENCES users(id)
+  FOREIGN KEY(created_by) REFERENCES users(id),  
+  FOREIGN KEY(unit_id) REFERENCES units(id)
 )
 `);
+
+// -----------------------------
+// UNITS
+// -----------------------------
+db.run(`
+  CREATE TABLE IF NOT EXISTS units (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('club','personal','rental','other')),
+    description TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// -----------------------------
+// UNIT SEED (default)
+// -----------------------------
+db.run(`
+  INSERT INTO units (name, type, description)
+  SELECT 'Serenity Club', 'club', 'Unità principale'
+  WHERE NOT EXISTS (SELECT 1 FROM units)
+`);
+
+// -----------------------------
+// USER_UNITS
+// -----------------------------
+db.run(`
+  CREATE TABLE IF NOT EXISTS user_units (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    unit_id INTEGER NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('admin','manager','member')) DEFAULT 'member',
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, unit_id),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE CASCADE
+  )
+`);
+
+// -----------------------------
+// USER_UNITS AUTO LINK (todos usuários)
+// -----------------------------
+db.run(`
+  INSERT INTO user_units (user_id, unit_id, role)
+  SELECT 
+    u.id,
+    (SELECT id FROM units ORDER BY id LIMIT 1),
+    CASE 
+      WHEN u.role = 'admin' THEN 'admin'
+      WHEN u.role = 'manager' THEN 'manager'
+      ELSE 'member'
+    END
+  FROM users u
+  WHERE NOT EXISTS (
+    SELECT 1 
+    FROM user_units uu 
+    WHERE uu.user_id = u.id
+      AND uu.unit_id = (SELECT id FROM units ORDER BY id LIMIT 1)
+  )
+`);
+
 
 console.log('✅ Migrazione database completata');

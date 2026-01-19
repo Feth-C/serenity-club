@@ -8,6 +8,7 @@ const { z } = require('zod');
 const transactionCreateSchema = z.object({
     body: z.object({
         member_id: z.coerce.number().int().optional(),
+        unit_id: z.coerce.number().int({ invalid_type_error: 'unit_id inválido' }),
         type: z.enum(['income', 'expense'], { message: 'Tipo inválido' }),
         category: z.string().optional(),
         amount: z.coerce.number().positive('Valor deve ser maior que 0'),
@@ -23,6 +24,7 @@ const transactionCreateSchema = z.object({
 const transactionUpdateSchema = z.object({
     body: z.object({
         member_id: z.coerce.number().int().optional(),
+        unit_id: z.coerce.number().int().optional(),
         type: z.enum(['income', 'expense']).optional(),
         category: z.string().optional(),
         amount: z.coerce.number().positive().optional(),
