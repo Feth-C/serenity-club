@@ -7,23 +7,27 @@ const formatResponse = require('../utils/responseFormatter');
 module.exports = {
 
   // -----------------------------
-  // Listar todos os membros
+  // Listar membros por unidade
   // -----------------------------
   async list(req, res) {
     const { status } = req.query;
+    const { userRole, userId, activeUnitId } = req;
+
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
+
     let members;
 
-    if (req.userRole === 'admin') {
-      members = await Member.findAll(status);
-    }
-    else if (req.userRole === 'manager') {
-      members = await Member.findByManager(req.userId, status);
-    }
-    else if (req.userRole === 'member') {
-      const member = await Member.findByUserId(req.userId);
+    if (userRole === 'admin') {
+      members = await Member.findAllByUnit(activeUnitId, status);
+
+    } else if (userRole === 'manager') {
+      members = await Member.findByManagerAndUnit(userId, activeUnitId, status);
+
+    } else if (userRole === 'member') {
+      const member = await Member.findByUserAndUnit(userId, activeUnitId);
       members = member ? [member] : [];
-    }
-    else {
+
+    } else {
       throw new AppError('Accesso negato.', 403);
     }
 
@@ -35,30 +39,30 @@ module.exports = {
   // -----------------------------
   async get(req, res) {
     const id = parseInt(req.params.id);
-    const member = await Member.findById(id);
+    const { userRole, userId, activeUnitId } = req;
 
-    if (!member) throw new AppError('Membro non trovato.', 404);
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
 
-    // Admin ou manager dono
-    const isOwnerOrAdmin = req.userRole === 'admin' || member.manager_id === req.userId;
+    const member = await Member.findByIdAndUnit(id, activeUnitId);
+    if (!member) throw new AppError('Membro non trovato nella unità corrente.', 404);
+
+    const isOwnerOrAdmin = userRole === 'admin' || member.manager_id === userId;
     if (!isOwnerOrAdmin) throw new AppError('Accesso negato.', 403);
 
     res.json(formatResponse(member));
   },
 
   // -----------------------------
-  // Buscar membro pelo /me
+  // Buscar membro /me
   // -----------------------------
   async getMe(req, res) {
-    if (req.userRole !== 'member') {
-      throw new AppError('Accesso negato.', 403);
-    }
+    const { userId, userRole, activeUnitId } = req;
 
-    const member = await Member.findByUserId(req.userId);
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
+    if (userRole !== 'member') throw new AppError('Accesso negato.', 403);
 
-    if (!member) {
-      throw new AppError('Membro non trovato.', 404);
-    }
+    const member = await Member.findByUserAndUnit(userId, activeUnitId);
+    if (!member) throw new AppError('Membro non trovato nella unità corrente.', 404);
 
     res.json(formatResponse(member));
   },
@@ -67,13 +71,14 @@ module.exports = {
   // Criar novo membro
   // -----------------------------
   async create(req, res) {
-    const data = req.body;
+    const { userRole, userId, activeUnitId } = req;
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
 
-    // Definir manager_id
-    if (req.userRole === 'manager') {
-      data.manager_id = req.userId; // manager cria apenas para si
-    } else if (req.userRole === 'admin') {
-      // admin pode escolher qualquer manager ou deixar null
+    const data = { ...req.body, unit_id: activeUnitId };
+
+    if (userRole === 'manager') {
+      data.manager_id = userId;
+    } else if (userRole === 'admin') {
       data.manager_id = data.manager_id || null;
     } else {
       throw new AppError('Accesso negato.', 403);
@@ -88,17 +93,18 @@ module.exports = {
   // -----------------------------
   async update(req, res) {
     const id = parseInt(req.params.id);
-    const member = await Member.findById(id);
+    const { userRole, userId, activeUnitId } = req;
 
-    if (!member) throw new AppError('Membro non trovato.', 404);
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
 
-    const isOwnerOrAdmin = req.userRole === 'admin' || member.manager_id === req.userId;
+    const member = await Member.findByIdAndUnit(id, activeUnitId);
+    if (!member) throw new AppError('Membro non trovato nella unità corrente.', 404);
+
+    const isOwnerOrAdmin = userRole === 'admin' || member.manager_id === userId;
     if (!isOwnerOrAdmin) throw new AppError('Accesso negato.', 403);
 
-    const data = req.body;
-
-    // Manager não pode alterar manager_id
-    if (req.userRole === 'manager') delete data.manager_id;
+    const data = { ...req.body };
+    if (userRole === 'manager') delete data.manager_id;
 
     await Member.update(id, data);
     res.json(formatResponse(null, 'Membro aggiornato con successo.'));
@@ -109,11 +115,14 @@ module.exports = {
   // -----------------------------
   async delete(req, res) {
     const id = parseInt(req.params.id);
-    const member = await Member.findById(id);
+    const { userRole, userId, activeUnitId } = req;
 
-    if (!member) throw new AppError('Membro non trovato.', 404);
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
 
-    const isOwnerOrAdmin = req.userRole === 'admin' || member.manager_id === req.userId;
+    const member = await Member.findByIdAndUnit(id, activeUnitId);
+    if (!member) throw new AppError('Membro non trovato nella unità corrente.', 404);
+
+    const isOwnerOrAdmin = userRole === 'admin' || member.manager_id === userId;
     if (!isOwnerOrAdmin) throw new AppError('Accesso negato.', 403);
 
     await Member.delete(id);

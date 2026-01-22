@@ -5,86 +5,182 @@ const formatResponse = require('../utils/responseFormatter');
 const AppError = require('../errors/AppError');
 
 module.exports = {
+
   // -----------------------------
   // Criar nova transação
   // -----------------------------
-  async create(req, res, next) {
-    try {
-      const user_id = req.userId;
-      const { member_id, unit_id, type, category, amount, currency, date, description } = req.body;
+  async create(req, res) {
+    const { userId, activeUnitId } = req;
+    const { member_id, type, category, amount, currency, date, description } = req.body;
 
-      const result = await Transaction.create({ member_id, unit_id, type, category, amount, currency, date, description, created_by: user_id });
-      res.status(201).json(formatResponse(result, 'Transação criada com sucesso'));
-    } catch (err) {
-      next(err);
+    if (!activeUnitId) {
+      throw new AppError('Unità attiva non definita.', 400);
     }
+
+    const transaction = await Transaction.create({
+      member_id,
+      unit_id: activeUnitId,
+      type,
+      category,
+      amount,
+      currency,
+      date,
+      description,
+      created_by: userId
+    });
+
+    res.status(201).json(
+      formatResponse(transaction, 'Transazione creata con successo.')
+    );
   },
 
   // -----------------------------
   // Listar transações
   // -----------------------------
-  async findAll(req, res, next) {
-    try {
-      const user_id = req.userId;
-      const { unit_id, member_id } = req.query;
+  async findAll(req, res) {
+    const { userRole, userId, activeUnitId } = req;
 
-      const transactions = await Transaction.findAll({ user_id, unit_id, member_id });
-      res.json(formatResponse(transactions));
-    } catch (err) {
-      next(err);
+    if (!activeUnitId) {
+      throw new AppError('Unità attiva non definita.', 400);
     }
+
+    let transactions = [];
+
+    if (userRole === 'admin') {
+      transactions = await Transaction.findAllByUnit(activeUnitId);
+
+    } else if (userRole === 'manager') {
+      transactions = await Transaction.findByManagerAndUnit(
+        userId,
+        activeUnitId
+      );
+
+    } else {
+      throw new AppError('Accesso negato.', 403);
+    }
+
+    res.json(formatResponse(transactions));
   },
 
   // -----------------------------
   // Buscar transação por ID
   // -----------------------------
-  async findById(req, res, next) {
-    try {
-      const user_id = req.userId;
-      const { id } = req.params;
+  async findById(req, res) {
+    const { id } = req.params;
+    const { userRole, userId, activeUnitId } = req;
 
-      const transaction = await Transaction.findById(Number(id), user_id);
-      if (!transaction) throw new AppError('Transação não encontrada ou acesso negado', 404);
-
-      res.json(formatResponse(transaction));
-    } catch (err) {
-      next(err);
+    if (!activeUnitId) {
+      throw new AppError('Unità attiva non definita.', 400);
     }
+
+    const transaction = await Transaction.findByIdAndUnit(
+      Number(id),
+      activeUnitId
+    );
+
+    if (!transaction) {
+      throw new AppError('Transazione non trovata.', 404);
+    }
+
+    // Manager só pode acessar transações dos próprios membros
+    if (userRole === 'manager') {
+      const list = await Transaction.findByManagerAndUnit(
+        userId,
+        activeUnitId
+      );
+
+      const allowed = list.some(t => t.id === transaction.id);
+      if (!allowed) {
+        throw new AppError('Accesso negato.', 403);
+      }
+    }
+
+    res.json(formatResponse(transaction));
   },
 
   // -----------------------------
   // Atualizar transação
   // -----------------------------
-  async update(req, res, next) {
-    try {
-      const { id } = req.params;
-      const { type, category, amount, currency, date, description, member_id, unit_id } = req.body;
+  async update(req, res) {
+    const { id } = req.params;
+    const { userRole, userId, activeUnitId } = req;
+    const { type, category, amount, currency, date, description } = req.body;
 
-      // ⚠️ Para segurança, podemos buscar antes e garantir acesso
-      const existing = await Transaction.findById(Number(id), req.userId);
-      if (!existing) throw new AppError('Transação não encontrada ou acesso negado', 404);
-
-      const changes = await Transaction.update(Number(id), { type, category, amount, currency, date, description, member_id, unit_id });
-      res.json(formatResponse({ changes }, 'Transação atualizada'));
-    } catch (err) {
-      next(err);
+    if (!activeUnitId) {
+      throw new AppError('Unità attiva non definita.', 400);
     }
+
+    const transaction = await Transaction.findByIdAndUnit(
+      Number(id),
+      activeUnitId
+    );
+
+    if (!transaction) {
+      throw new AppError('Transazione non trovata.', 404);
+    }
+
+    if (userRole === 'manager') {
+      const list = await Transaction.findByManagerAndUnit(
+        userId,
+        activeUnitId
+      );
+
+      const allowed = list.some(t => t.id === transaction.id);
+      if (!allowed) {
+        throw new AppError('Accesso negato.', 403);
+      }
+    }
+
+    await Transaction.update(Number(id), {
+      type,
+      category,
+      amount,
+      currency,
+      date,
+      description
+    });
+
+    res.json(
+      formatResponse(null, 'Transazione aggiornata con successo.')
+    );
   },
 
   // -----------------------------
   // Deletar transação
   // -----------------------------
-  async delete(req, res, next) {
-    try {
-      const { id } = req.params;
+  async delete(req, res) {
+    const { id } = req.params;
+    const { userRole, userId, activeUnitId } = req;
 
-      const existing = await Transaction.findById(Number(id), req.userId);
-      if (!existing) throw new AppError('Transação não encontrada ou acesso negado', 404);
-
-      const deleted = await Transaction.delete(Number(id));
-      res.json(formatResponse({ deleted }, 'Transação deletada'));
-    } catch (err) {
-      next(err);
+    if (!activeUnitId) {
+      throw new AppError('Unità attiva non definita.', 400);
     }
+
+    const transaction = await Transaction.findByIdAndUnit(
+      Number(id),
+      activeUnitId
+    );
+
+    if (!transaction) {
+      throw new AppError('Transazione non trovata.', 404);
+    }
+
+    if (userRole === 'manager') {
+      const list = await Transaction.findByManagerAndUnit(
+        userId,
+        activeUnitId
+      );
+
+      const allowed = list.some(t => t.id === transaction.id);
+      if (!allowed) {
+        throw new AppError('Accesso negato.', 403);
+      }
+    }
+
+    await Transaction.delete(Number(id));
+
+    res.json(
+      formatResponse(null, 'Transazione eliminata con successo.')
+    );
   }
 };

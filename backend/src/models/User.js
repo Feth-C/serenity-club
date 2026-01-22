@@ -44,17 +44,31 @@ module.exports = {
   },
 
   // -----------------------------
-  // Listar todos usuários (opcional status)
+  // Listar todos usuários (opcional status e unidade)
   // -----------------------------
-  findAll(status = null) {
+  findAll({ status = null, unitId = null } = {}) {
     return new Promise((resolve, reject) => {
-      const query = `
-        SELECT id, name, email, role, status, created_at
-        FROM users
-        WHERE (? IS NULL OR status = ?)
-        ORDER BY id DESC
+      let query = `
+        SELECT u.id, u.name, u.email, u.role, u.status, u.created_at
+        FROM users u
+        INNER JOIN user_units uu ON uu.user_id = u.id
+        WHERE uu.is_active = 1
       `;
-      db.all(query, [status, status], (err, rows) => err ? reject(err) : resolve(rows));
+      const params = [];
+
+      if (status) {
+        query += ' AND u.status = ?';
+        params.push(status);
+      }
+
+      if (unitId) {
+        query += ' AND uu.unit_id = ?';
+        params.push(unitId);
+      }
+
+      query += ' ORDER BY u.id DESC';
+
+      db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows));
     });
   },
 

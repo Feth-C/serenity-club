@@ -4,7 +4,6 @@ const db = require('../database/db');
 const { computeDocumentStatus } = require('../utils/statusHelper');
 
 module.exports = {
-
   // -----------------------------
   // Criar documento vinculado a um membro
   // -----------------------------
@@ -22,24 +21,32 @@ module.exports = {
   },
 
   // -----------------------------
-  // Contar documentos por status
+  // Contar documentos por status (com unit)
   // -----------------------------
-  countByStatus(memberIds, days = 30, type = null) {
+  countByStatus(memberIds, days = 30, type = null, unitId = null) {
     return new Promise((resolve, reject) => {
+      if (!memberIds.length) return resolve({ valid: 0, expiring: 0, expired: 0 });
+
       const placeholders = memberIds.map(() => '?').join(',');
       let query = `
         SELECT
           SUM(CASE WHEN expiration_date IS NULL OR DATE(expiration_date) > DATE('now', '+' || ? || ' days') THEN 1 ELSE 0 END) AS valid,
           SUM(CASE WHEN DATE(expiration_date) <= DATE('now', '+' || ? || ' days') AND DATE(expiration_date) >= DATE('now') THEN 1 ELSE 0 END) AS expiring,
           SUM(CASE WHEN DATE(expiration_date) < DATE('now') THEN 1 ELSE 0 END) AS expired
-        FROM member_documents
-        WHERE member_id IN (${placeholders})
+        FROM member_documents md
+        JOIN members m ON md.member_id = m.id
+        WHERE md.member_id IN (${placeholders})
       `;
       const params = [days, days, ...memberIds];
 
       if (type) {
-        query += ' AND type = ?';
+        query += ' AND md.type = ?';
         params.push(type);
+      }
+
+      if (unitId) {
+        query += ' AND m.unit_id = ?';
+        params.push(unitId);
       }
 
       db.get(query, params, (err, row) => {
@@ -56,38 +63,39 @@ module.exports = {
   // -----------------------------
   // Listar documentos de múltiplos membros (status direto do SQL)
   // -----------------------------
-  findByMembers(memberIds, { status = null, type = null, days = 30 } = {}) {
+  findByMembers(memberIds, { status = null, type = null, days = 30, unitId = null } = {}) {
     return new Promise((resolve, reject) => {
+      if (!memberIds.length) return resolve([]);
+
       const placeholders = memberIds.map(() => '?').join(',');
-
       let query = `
-      SELECT md.*, m.name AS member_name,
-        CASE
-          WHEN md.expiration_date IS NULL
-               OR DATE(md.expiration_date) > DATE('now', '+' || ? || ' days')
-            THEN 'valid'
-          WHEN DATE(md.expiration_date) <= DATE('now', '+' || ? || ' days')
-               AND DATE(md.expiration_date) >= DATE('now')
-            THEN 'expiring'
-          ELSE 'expired'
-        END AS status
-      FROM member_documents md
-      JOIN members m ON md.member_id = m.id
-      WHERE md.member_id IN (${placeholders})
-    `;
-
+        SELECT md.*, m.name AS member_name,
+          CASE
+            WHEN md.expiration_date IS NULL
+                 OR DATE(md.expiration_date) > DATE('now', '+' || ? || ' days') THEN 'valid'
+            WHEN DATE(md.expiration_date) <= DATE('now', '+' || ? || ' days')
+                 AND DATE(md.expiration_date) >= DATE('now')
+              THEN 'expiring'
+            ELSE 'expired'
+          END AS status
+        FROM member_documents md
+        JOIN members m ON md.member_id = m.id
+        WHERE md.member_id IN (${placeholders})
+      `;
       const params = [days, days, ...memberIds];
 
       if (type) {
-        query += ` AND md.type = ?`;
+        query += ' AND md.type = ?';
         params.push(type);
       }
 
+      if (unitId) {
+        query += ' AND m.unit_id = ?';
+        params.push(unitId);
+      }
+
       if (status) {
-        query = `
-        SELECT * FROM (${query})
-        WHERE status = ?
-      `;
+        query = `SELECT * FROM (${query}) WHERE status = ?`;
         params.push(status);
       }
 
@@ -101,110 +109,11 @@ module.exports = {
   },
 
   // -----------------------------
-  // Listagem global paginada
+  // Outros métodos com JOIN members
+  // (findAllExpiring, findExpiringByManager, findExpiringByMember)
+  // recebem unitId opcional
   // -----------------------------
-  findAllPaginated({ page = 1, perPage = 10, filters = {} }) {
-    return new Promise((resolve, reject) => {
-
-      const offset = (page - 1) * perPage;
-      const params = [];
-      const where = [];
-
-      let baseQuery = `
-      FROM member_documents md
-      JOIN members m ON m.id = md.member_id
-    `;
-
-      // 🔐 Escopos
-      if (filters.manager_id) {
-        where.push('m.manager_id = ?');
-        params.push(filters.manager_id);
-      }
-
-      if (filters.user_id) {
-        where.push('m.user_id = ?');
-        params.push(filters.user_id);
-      }
-
-      // 📄 Tipo
-      if (filters.type) {
-        where.push('md.type = ?');
-        params.push(filters.type);
-      }
-
-      // 📆 Status (calculado)
-      if (filters.status === 'valid') {
-        where.push(`
-        md.expiration_date IS NULL
-        OR DATE(md.expiration_date) > DATE('now', '+30 days')
-      `);
-      }
-
-      if (filters.status === 'expiring') {
-        where.push(`
-        DATE(md.expiration_date) <= DATE('now', '+30 days')
-        AND DATE(md.expiration_date) >= DATE('now')
-      `);
-      }
-
-      if (filters.status === 'expired') {
-        where.push(`DATE(md.expiration_date) < DATE('now')`);
-      }
-
-      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
-      // 🔢 Total
-      const countQuery = `
-      SELECT COUNT(*) as total
-      ${baseQuery}
-      ${whereSql}
-    `;
-
-      db.get(countQuery, params, (err, countRow) => {
-        if (err) return reject(err);
-
-        const totalItems = countRow.total;
-        const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
-
-        // 📄 Dados
-        const dataQuery = `
-        SELECT
-          md.*,
-          m.name AS member_name,
-          CASE
-            WHEN md.expiration_date IS NULL OR DATE(md.expiration_date) > DATE('now', '+30 days') THEN 'valid'
-            WHEN DATE(md.expiration_date) <= DATE('now', '+30 days') AND DATE(md.expiration_date) >= DATE('now') THEN 'expiring'
-            ELSE 'expired'
-          END AS status
-        ${baseQuery}
-        ${whereSql}
-        ORDER BY md.id DESC
-        LIMIT ? OFFSET ?
-      `;
-
-        db.all(
-          dataQuery,
-          [...params, perPage, offset],
-          (err, rows) => {
-            if (err) return reject(err);
-
-            resolve({
-              items: rows,
-              page,
-              perPage,
-              totalItems,
-              totalPages
-            });
-          }
-        );
-      });
-    });
-  },
-
-  // -----------------------------
-  // Documentos expirando (Admin / Manager / Member)
-  // -----------------------------
-  findAllExpiring(days = 30, type = null) {
+  findAllExpiring(days = 30, type = null, unitId = null) {
     return new Promise((resolve, reject) => {
       let query = `
         SELECT md.*, m.name AS member_name,
@@ -224,6 +133,11 @@ module.exports = {
         params.push(type);
       }
 
+      if (unitId) {
+        query += ' AND m.unit_id = ?';
+        params.push(unitId);
+      }
+
       db.all(query, params, (err, rows) => {
         if (err) return reject(err);
         resolve(rows);
@@ -231,7 +145,7 @@ module.exports = {
     });
   },
 
-  findExpiringByManager(manager_id, days = 30, type = null) {
+  findExpiringByManager(manager_id, days = 30, type = null, unitId = null) {
     return new Promise((resolve, reject) => {
       let query = `
         SELECT md.*, m.name AS member_name,
@@ -252,6 +166,11 @@ module.exports = {
         params.push(type);
       }
 
+      if (unitId) {
+        query += ' AND m.unit_id = ?';
+        params.push(unitId);
+      }
+
       db.all(query, params, (err, rows) => {
         if (err) return reject(err);
         resolve(rows);
@@ -259,7 +178,7 @@ module.exports = {
     });
   },
 
-  findExpiringByMember(member_id, days = 30, type = null) {
+  findExpiringByMember(member_id, days = 30, type = null, unitId = null) {
     return new Promise((resolve, reject) => {
       let query = `
         SELECT md.*,
@@ -269,6 +188,7 @@ module.exports = {
             ELSE 'expired'
           END AS status
         FROM member_documents md
+        JOIN members m ON md.member_id = m.id
         WHERE md.member_id = ?
           AND md.expiration_date IS NOT NULL
       `;
@@ -279,6 +199,11 @@ module.exports = {
         params.push(type);
       }
 
+      if (unitId) {
+        query += ' AND m.unit_id = ?';
+        params.push(unitId);
+      }
+
       db.all(query, params, (err, rows) => {
         if (err) return reject(err);
         resolve(rows);
@@ -287,7 +212,7 @@ module.exports = {
   },
 
   // -----------------------------
-  // Buscar documentos por ID
+  // Métodos simples (findById, findByIdAndMember, update, delete) permanecem inalterados
   // -----------------------------
   findById(id) {
     return new Promise((resolve, reject) => {
@@ -298,9 +223,6 @@ module.exports = {
     });
   },
 
-  // -----------------------------
-  // Buscar documentos do membro por ID
-  // -----------------------------
   findByIdAndMember(id, member_id) {
     return new Promise((resolve, reject) => {
       db.get('SELECT * FROM member_documents WHERE id = ? AND member_id = ?', [id, member_id], (err, row) => {
@@ -310,9 +232,6 @@ module.exports = {
     });
   },
 
-  // -----------------------------
-  // Atualizar documento pelo ID
-  // -----------------------------
   update(id, data) {
     return new Promise((resolve, reject) => {
       const allowed = ['member_id', 'type', 'file_path', 'expiration_date', 'notes', 'status'];
@@ -329,9 +248,6 @@ module.exports = {
     });
   },
 
-  // -----------------------------
-  // Deletar documento pelo ID
-  // -----------------------------
   delete(id) {
     return new Promise((resolve, reject) => {
       db.run('DELETE FROM member_documents WHERE id = ?', [id], function (err) {

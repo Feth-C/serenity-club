@@ -3,37 +3,36 @@
 const Member = require('../models/Member');
 const MemberDocument = require('../models/MemberDocument');
 const formatResponse = require('../utils/responseFormatter');
+const { computeDocumentStatus } = require('../utils/statusHelper');
 const AppError = require('../errors/AppError');
 
-// Função auxiliar para determinar status do documento
-function getDocumentStatus(expiration_date, days = 30) {
-  if (!expiration_date) return 'valid';
-  const today = new Date();
-  const diff = Math.floor((new Date(expiration_date) - today) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return 'expired';
-  if (diff <= days) return 'expiring';
-  return 'valid';
-}
-
 module.exports = {
-
   // -----------------------------
   // GET /dashboard/summary
-  // Retorna resumo de members e documents
   // -----------------------------
   async summary(req, res) {
     try {
+      const { userId, userRole, activeUnitId } = req;
+
+      if (!activeUnitId) {
+        throw new AppError('Unità attiva non definita.', 400);
+      }
+
       // -----------------------------
-      // Members
+      // MEMBERS
       // -----------------------------
       let members = [];
-      if (req.userRole === 'admin') {
-        members = await Member.findAll(); // todos os membros
-      } else if (req.userRole === 'manager') {
-        members = await Member.findByManager(req.userId); // apenas próprios
-      } else if (req.userRole === 'member') {
-        const member = await Member.findByUserId(req.userId);
+
+      if (userRole === 'admin') {
+        members = await Member.findAllByUnit(activeUnitId);
+
+      } else if (userRole === 'manager') {
+        members = await Member.findByManagerAndUnit(userId, activeUnitId);
+
+      } else if (userRole === 'member') {
+        const member = await Member.findByUserAndUnit(userId, activeUnitId);
         if (member) members = [member];
+
       } else {
         throw new AppError('Accesso negato.', 403);
       }
@@ -45,30 +44,30 @@ module.exports = {
       };
 
       // -----------------------------
-      // Documents
+      // DOCUMENTS
       // -----------------------------
       const memberIds = members.map(m => m.id);
       let documents = [];
+
       if (memberIds.length > 0) {
-        documents = await MemberDocument.findByMembers(memberIds); // todos docs dos membros
+        documents = await MemberDocument.findByMembersAndUnit(memberIds, activeUnitId);
       }
 
       const documentsSummary = {
         total: documents.length,
-        valid: documents.filter(d => getDocumentStatus(d.expiration_date) === 'valid').length,
-        expiring: documents.filter(d => getDocumentStatus(d.expiration_date) === 'expiring').length,
-        expired: documents.filter(d => getDocumentStatus(d.expiration_date) === 'expired').length
+        valid: documents.filter(d => computeDocumentStatus(d.expiration_date) === 'valid').length,
+        expiring: documents.filter(d => computeDocumentStatus(d.expiration_date) === 'expiring').length,
+        expired: documents.filter(d => computeDocumentStatus(d.expiration_date) === 'expired').length
       };
 
-      res.json(formatResponse({
+      return res.json(formatResponse({
         members: membersSummary,
         documents: documentsSummary
       }));
 
     } catch (err) {
-      console.error('Errore nel dashboard summary:', err);
+      console.error('[DashboardController] summary error:', err);
       throw new AppError('Impossibile recuperare il riepilogo.', 500);
     }
   }
-
 };

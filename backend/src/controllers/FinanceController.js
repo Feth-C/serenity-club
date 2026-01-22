@@ -12,11 +12,21 @@ function parseMonthRange(month) {
 
 const FinanceController = {
   // -----------------------------
-  // Resumo geral (todas as transações)
+  // Resumo geral (todas as transações da unidade)
   // -----------------------------
   async summary(req, res) {
     try {
-      const transactions = await Transaction.findAll(); // sempre array
+      const { userId, userRole, activeUnitId } = req;
+      if (!activeUnitId) return res.status(400).json({ error: 'Unità attiva non definita.' });
+
+      let transactions = [];
+      if (userRole === 'admin') {
+        transactions = await Transaction.findAllByUnit(activeUnitId);
+      } else if (userRole === 'manager') {
+        transactions = await Transaction.findByManagerAndUnit(userId, activeUnitId);
+      } else {
+        return res.status(403).json({ error: 'Accesso negato.' });
+      }
 
       const byType = { income: {}, expense: {} };
       const byCategory = {};
@@ -26,14 +36,12 @@ const FinanceController = {
       transactions.forEach(tx => {
         const amount = Number(tx.amount);
 
-        // soma por tipo e moeda
         if (!byType[tx.type][tx.currency]) byType[tx.type][tx.currency] = 0;
         byType[tx.type][tx.currency] += amount;
 
         if (tx.type === 'income') totalIncome += amount;
-        else if (tx.type === 'expense') totalExpense += amount;
+        else totalExpense += amount;
 
-        // por categoria (não por moeda)
         if (!byCategory[tx.category]) byCategory[tx.category] = 0;
         byCategory[tx.category] += amount;
       });
@@ -59,14 +67,23 @@ const FinanceController = {
   // -----------------------------
   async monthlySummary(req, res) {
     try {
+      const { userId, userRole, activeUnitId } = req;
+      if (!activeUnitId) return res.status(400).json({ error: 'Unità attiva non definita.' });
+
       const { month } = req.query;
       if (!month) return res.status(400).json({ error: 'Il mese (AAAA-MM) è obbligatorio.' });
 
       const { start, end } = parseMonthRange(month);
 
-      const transactions = await Transaction.findAll();
+      let transactions = [];
+      if (userRole === 'admin') {
+        transactions = await Transaction.findAllByUnit(activeUnitId);
+      } else if (userRole === 'manager') {
+        transactions = await Transaction.findByManagerAndUnit(userId, activeUnitId);
+      } else {
+        return res.status(403).json({ error: 'Accesso negato.' });
+      }
 
-      // filtra por data
       const monthlyTx = transactions.filter(tx => {
         const txDate = new Date(tx.date);
         return txDate >= start && txDate < end;
@@ -78,12 +95,11 @@ const FinanceController = {
 
       monthlyTx.forEach(tx => {
         const amount = Number(tx.amount);
-
         if (!byType[tx.type][tx.currency]) byType[tx.type][tx.currency] = 0;
         byType[tx.type][tx.currency] += amount;
 
         if (tx.type === 'income') totalIncome += amount;
-        else if (tx.type === 'expense') totalExpense += amount;
+        else totalExpense += amount;
       });
 
       return res.json({

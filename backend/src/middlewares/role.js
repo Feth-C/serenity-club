@@ -3,10 +3,12 @@
 const AppError = require('../errors/AppError');
 
 /**
+ * Middleware de autorização baseado em papel do usuário
+ * 
  * Uso:
- * role('admin')
- * role(['admin', 'manager'])
- * role(['admin', 'member'], { allowSelf: true, selfParam: 'id' })
+ *   role('admin')
+ *   role(['admin', 'manager'])
+ *   role(['admin', 'member'], { allowSelf: true, selfParam: 'id', unitCheck: true })
  */
 const role = (allowedRoles, options = {}) => {
   if (!Array.isArray(allowedRoles)) allowedRoles = [allowedRoles];
@@ -19,7 +21,16 @@ const role = (allowedRoles, options = {}) => {
     if (user.role === 'admin') return next();
 
     // Role permitida
-    if (allowedRoles.includes(user.role)) return next();
+    if (allowedRoles.includes(user.role)) {
+      // Opcional: verificar unidade ativa
+      if (options.unitCheck && req.activeUnitId) {
+        const resourceUnitId = Number(req.params.unitId) || null;
+        if (resourceUnitId && resourceUnitId !== req.activeUnitId) {
+          throw new AppError('Accesso negato per questa unità.', 403);
+        }
+      }
+      return next();
+    }
 
     // Acesso ao próprio recurso (quando explicitamente permitido)
     if (options.allowSelf && options.selfParam) {

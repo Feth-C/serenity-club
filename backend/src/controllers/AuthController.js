@@ -3,7 +3,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const db = require('../database/db');
 const AppError = require('../errors/AppError');
 const formatResponse = require('../utils/responseFormatter');
 
@@ -14,70 +13,96 @@ module.exports = {
   // -----------------------------
   // POST /auth/login
   // -----------------------------
-  async login(req, res) {
-    const { email, password } = req.body;
+  async login(req, res, next) {
+    try {
+      const { email, password } = req.body;
 
-    const user = await User.findByEmail(email);
-    if (!user) throw new AppError('Utente non trovato.', 401);
+      const user = await User.findByEmail(email);
+      if (!user) throw new AppError('Utente non trovato.', 401);
 
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) throw new AppError('Password errata.', 401);
+      const match = await bcrypt.compare(password, user.password_hash);
+      if (!match) throw new AppError('Password errata.', 401);
 
-    // Buscar unidades ativas do usuário
-    const units = await User.getUnits(user.id);
-    if (!units?.length) throw new AppError('Utente senza unità associata.', 500);
+      const units = await User.getUnits(user.id);
+      if (!units?.length) throw new AppError('Utente senza unità associata.', 500);
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
+      const activeUnitId = units[0].id; // unidade ativa default
+      const token = jwt.sign(
+        { id: user.id, role: user.role, activeUnitId },
+        JWT_SECRET,
+        { expiresIn: '1d' }
+      );
 
-    res.json(formatResponse({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        units
-      }
-    }, 'Accesso autorizzato!'));
+      res.json(formatResponse({
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          activeUnitId,
+          units
+        }
+      }, 'Accesso autorizzato!'));
+
+    } catch (err) {
+      next(err);
+    }
   },
 
   // -----------------------------
   // GET /auth/me
   // -----------------------------
-  async me(req, res) {
-    const user = await User.getById(req.userId);
-    if (!user) throw new AppError('Utente non trovato.', 404);
+  async me(req, res, next) {
+    try {
+      const user = await User.getById(req.userId);
+      if (!user) throw new AppError('Utente non trovato.', 404);
 
-    const units = await User.getUnits(user.id);
-    if (!units?.length) throw new AppError('Utente senza unità associata.', 500);
+      const units = await User.getUnits(user.id);
+      if (!units?.length) throw new AppError('Utente senza unità associata.', 500);
 
-    res.json(formatResponse({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        units
-      }
-    }));
+      const activeUnitId = units[0].id;
+
+      res.json(formatResponse({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          activeUnitId,
+          units
+        }
+      }));
+
+    } catch (err) {
+      next(err);
+    }
   },
 
   // -----------------------------
   // POST /auth/register (opcional)
   // -----------------------------
-  async register(req, res) {
-    const { name, email, password, role } = req.body;
+  async register(req, res, next) {
+    try {
+      const { name, email, password, role } = req.body;
 
-    const existingUser = await User.findByEmail(email);
-    if (existingUser) throw new AppError('Email già registrata.', 409);
+      const existingUser = await User.findByEmail(email);
+      if (existingUser) throw new AppError('Email già registrata.', 409);
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const userRole = role || 'member';
+      const passwordHash = await bcrypt.hash(password, 10);
+      const userRole = role || 'member';
 
-    const newUser = await User.create(name, email, passwordHash, userRole);
+      const newUser = await User.create(name, email, passwordHash, userRole);
 
-    res.status(201).json(formatResponse({ id: newUser.id }, 'Utente registrato con successo!'));
+      // vincular automaticamente à unidade default
+      await User.linkToDefaultUnit(newUser.id, userRole);
+
+      res.status(201).json(formatResponse({ id: newUser.id }, 'Utente registrato con successo!'));
+
+    } catch (err) {
+      next(err);
+    }
   }
 };

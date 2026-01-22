@@ -6,14 +6,14 @@ module.exports = {
   // -----------------------------
   // Criar um novo funcionário
   // -----------------------------
-  create({ manager_id, user_id, name, email, phone, role, status = 'active' }) {
+  create({ manager_id, user_id, name, email, phone, role, status = 'active', unit_id = null }) {
     return new Promise((resolve, reject) => {
       const query = `
         INSERT INTO employees
-        (manager_id, user_id, name, email, phone, role, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (manager_id, user_id, name, email, phone, role, status, unit_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      db.run(query, [manager_id, user_id, name, email, phone, role, status], function (err) {
+      db.run(query, [manager_id, user_id, name, email, phone, role, status, unit_id], function (err) {
         if (err) return reject(err);
         resolve({ id: this.lastID });
       });
@@ -21,15 +21,15 @@ module.exports = {
   },
 
   // -----------------------------
-  // Listar funcionários do manager
+  // Listar funcionários
   // -----------------------------
-  findAll(filters = {}) {
+  findAll(filters = {}, unitId = null) {
     return new Promise((resolve, reject) => {
       let query = `
-      SELECT id, name, email, phone, role, user_id, status, manager_id, created_at
-      FROM employees
-      WHERE 1=1
-    `;
+        SELECT id, name, email, phone, role, user_id, status, manager_id, unit_id, created_at
+        FROM employees
+        WHERE 1=1
+      `;
       const params = [];
 
       if (filters.manager_id) {
@@ -40,6 +40,11 @@ module.exports = {
       if (filters.status) {
         query += ` AND status = ?`;
         params.push(filters.status);
+      }
+
+      if (unitId) {
+        query += ` AND unit_id = ?`;
+        params.push(unitId);
       }
 
       query += ` ORDER BY id DESC`;
@@ -69,11 +74,10 @@ module.exports = {
   // -----------------------------
   update(id, data) {
     return new Promise((resolve, reject) => {
-      // Filtra apenas campos enviados
-      const allowed = ['name', 'email', 'phone', 'role', 'user_id', 'status'];
+      const allowed = ['name', 'email', 'phone', 'role', 'user_id', 'status', 'unit_id'];
       const entries = Object.entries(data).filter(([key]) => allowed.includes(key));
 
-      if (entries.length === 0) return resolve(0); // nada para atualizar
+      if (entries.length === 0) return resolve(0);
 
       const fields = entries.map(([key]) => `${key} = ?`).join(', ');
       const values = entries.map(([, value]) => value);

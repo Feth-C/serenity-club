@@ -6,28 +6,29 @@ const MemberController = require('../controllers/MemberController');
 const validate = require('../middlewares/validate');
 const auth = require('../middlewares/auth');
 const role = require('../middlewares/role');
+const unitContext = require('../middlewares/unitContext');
 
 const { memberCreateSchema, memberUpdateSchema } = require('../validators/memberSchema');
 
 router.use(auth);
 
 // GET /members
-router.get('/', role(['admin', 'manager', 'member']), MemberController.list);
+router.get('/', role(['admin', 'manager', 'member']), unitContext, MemberController.list);
 
 // GET /members/me
-router.get('/me', role(['member']), MemberController.getMe);
+router.get('/me', role(['member']), unitContext, MemberController.getMe);
 
 // POST /members
-router.post('/', role(['admin', 'manager']), validate(memberCreateSchema), MemberController.create);
+router.post('/', role(['admin', 'manager']), validate(memberCreateSchema), unitContext, MemberController.create);
 
 // PUT /members/:id
-router.put('/:id', role(['admin', 'manager']), validate(memberUpdateSchema), MemberController.update);
+router.put('/:id', role(['admin', 'manager']), validate(memberUpdateSchema), unitContext, MemberController.update);
 
 // DELETE /members/:id
-router.delete('/:id', role(['admin', 'manager']), MemberController.delete);
+router.delete('/:id', role(['admin', 'manager']), unitContext, MemberController.delete);
 
 // GET /members/:id
-router.get('/:id', role(['admin', 'manager', 'member']), MemberController.get);
+router.get('/:id', role(['admin', 'manager', 'member']), unitContext, MemberController.get);
 
 module.exports = router;
 

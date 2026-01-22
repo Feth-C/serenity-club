@@ -5,7 +5,7 @@ const router = express.Router();
 const auth = require('../middlewares/auth');
 const role = require('../middlewares/role');
 const DashboardController = require('../controllers/DashboardController');
-
+const unitContext = require('../middlewares/unitContext');
 
 // -----------------------------
 // Middleware global
@@ -13,6 +13,6 @@ const DashboardController = require('../controllers/DashboardController');
 router.use(auth);
 
 // Protegido por autenticação
-router.get('/summary', role('admin'), DashboardController.summary);
+router.get('/summary', role('admin'), unitContext, DashboardController.summary);
 
 module.exports = router;
