@@ -174,5 +174,37 @@ db.run(`
   )
 `);
 
+// -----------------------------
+// CLIENTS
+// -----------------------------
+db.run(`
+  CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE CASCADE
+  )
+`);
+
+// -----------------------------
+// AGENDAS
+// -----------------------------
+db.run(`
+  CREATE TABLE IF NOT EXISTS agendas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id INTEGER NOT NULL,
+    client_id INTEGER NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('scheduled','checked_in','checked_out','canceled')) DEFAULT 'scheduled',
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE CASCADE,
+    FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE
+  )
+`);
 
 console.log('✅ Migrazione database completata');

@@ -20,6 +20,8 @@ import MemberHome from '../pages/Members/MemberHome';
 import TransactionsList from '../pages/Transactions/TransactionsList';
 import TransactionForm from '../pages/Transactions/TransactionForm';
 import FinanceDashboard from '../pages/Dashboard/FinanceDashboard';
+import ClientsList from '../pages/Clients/ClientsList';
+import ClientForm from '../pages/Clients/ClientForm';
 
 const AppRoutes = () => {
   const { user, loading } = useContext(AuthContext);
@@ -65,6 +67,10 @@ const AppRoutes = () => {
       {/* Finance Dashboard */}
       <Route path="/dashboard/finance" element={user && ['admin', 'manager'].includes(user.role) ? <FinanceDashboard /> : <Navigate to="/login" />} />
 
+      {/* Clients */}
+      <Route path="/clients" element={user ? <ClientsList /> : <Navigate to="/login" />} />
+      <Route path="/clients/new" element={user ? <ClientForm /> : <Navigate to="/login" />} />
+      <Route path="/clients/:id" element={user ? <ClientForm /> : <Navigate to="/login" />} />
 
     </Routes>
   );
