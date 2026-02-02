@@ -20,6 +20,9 @@ import MemberHome from '../pages/Members/MemberHome';
 import TransactionsList from '../pages/Transactions/TransactionsList';
 import TransactionForm from '../pages/Transactions/TransactionForm';
 import FinanceDashboard from '../pages/Dashboard/FinanceDashboard';
+import SessionForm from '../pages/Sessions/SessionForm';
+import SessionsList from '../pages/Sessions/SessionsList';
+import SessionCloseForm from '../pages/Sessions/SessionCloseForm';
 
 const AppRoutes = () => {
   const { user, loading } = useContext(AuthContext);
@@ -65,6 +68,11 @@ const AppRoutes = () => {
       {/* Finance Dashboard */}
       <Route path="/dashboard/finance" element={user && ['admin', 'manager'].includes(user.role) ? <FinanceDashboard /> : <Navigate to="/login" />} />
 
+      {/* Sessions */}
+      <Route path="/sessions" element={user ? <SessionsList /> : <Navigate to="/login" />} />
+      <Route path="/sessions/new" element={user ? <SessionForm mode="create" /> : <Navigate to="/login" />} />
+      <Route path="/sessions/edit/:id" element={user ? <SessionForm mode="edit" /> : <Navigate to="/login" />} />
+      <Route path="/sessions/close/:id" element={user ? <SessionCloseForm mode="close" /> : <Navigate to="/login" />} />
 
     </Routes>
   );

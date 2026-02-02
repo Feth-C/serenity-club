@@ -174,5 +174,35 @@ db.run(`
   )
 `);
 
+// -----------------------------
+// SESSIONS
+// -----------------------------
+db.run(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id INTEGER NOT NULL,
+    client_name TEXT,              -- nome livre, opcional
+    contact TEXT,                  -- telefone / whatsapp, opcional
+    visit_type TEXT NOT NULL 
+      CHECK (visit_type IN ('first','return')),
+    start_time DATETIME NOT NULL,
+    planned_minutes INTEGER NOT NULL,
+    expected_end_time DATETIME NOT NULL,
+    actual_end_time DATETIME,       -- preenchido no fechamento real
+    status TEXT NOT NULL 
+      CHECK (status IN ('open','closed')) 
+      DEFAULT 'open',
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    planned_amount NUMERIC,         -- valor mínimo esperado
+    final_amount NUMERIC,           -- valor final cobrado
+    paid_amount NUMERIC DEFAULT 0,
+    payment_method TEXT,            -- cash, card, digital, etc
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(unit_id) REFERENCES units(id),
+    FOREIGN KEY(created_by) REFERENCES users(id)
+  )
+`);
 
 console.log('✅ Migrazione database completata');

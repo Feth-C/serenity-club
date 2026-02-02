@@ -125,7 +125,7 @@ const Dashboard = () => {
   return (
     <div style={{ padding: '20px', fontFamily: 'trebuchet ms, sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Dashboard</h1>
+        <h1>Cruscotto Aministrativo</h1>
         <LogoutButton />
       </div>
 
