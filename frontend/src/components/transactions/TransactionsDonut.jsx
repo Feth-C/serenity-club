@@ -41,13 +41,23 @@ export default function TransactionsDonut({ transactions, summary }) {
 // Componente PieChart genérico
 // -----------------------------
 const PieChartDonut = ({ data, currency }) => {
-  const formatValue = (value) => {
-    if (!currency) return value.toLocaleString('it-IT');
 
-    return value.toLocaleString(currency === 'CHF' ? 'de-CH' : 'it-IT', {
+  const formatValue = (value) => {
+    if (!currency) {
+      return new Intl.NumberFormat('it-IT', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(value);
+    }
+
+    const locale = currency === 'CHF' ? 'de-CH' : 'it-IT';
+
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency
-    });
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
   };
 
   return (
@@ -66,3 +76,4 @@ const PieChartDonut = ({ data, currency }) => {
     </div>
   );
 };
+

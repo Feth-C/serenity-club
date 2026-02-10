@@ -14,6 +14,7 @@ const dashboardRoutes = require('./dashboardRoutes');
 const transactionRoutes = require('./transactionRoutes');
 const financeRoutes = require('./financeRoutes');
 const sessionRoutes = require('./sessionRoutes');
+const clientRoutes = require('./clientRoutes');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -26,6 +27,7 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/finance', financeRoutes);
 router.use('/sessions', sessionRoutes);
+router.use('/clients', clientRoutes);
 
 // Rota interna apenas admin
 router.use('/admin', adminRoutes);

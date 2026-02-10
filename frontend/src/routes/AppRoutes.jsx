@@ -73,7 +73,7 @@ const AppRoutes = () => {
       <Route path="/sessions/new" element={user ? <SessionForm mode="create" /> : <Navigate to="/login" />} />
       <Route path="/sessions/edit/:id" element={user ? <SessionForm mode="edit" /> : <Navigate to="/login" />} />
       <Route path="/sessions/close/:id" element={user ? <SessionCloseForm mode="close" /> : <Navigate to="/login" />} />
-
+      
     </Routes>
   );
 };

@@ -12,8 +12,11 @@ module.exports = {
   // --------------------------------------------------
   create({
     unitId,
+    clientId = null,
     clientName = null,
     contact = null,
+    email = null,
+    address = null,
     visitType = 'first',
     startTime,
     plannedMinutes,
@@ -28,8 +31,11 @@ module.exports = {
       const query = `
       INSERT INTO sessions (
         unit_id,
+        client_id,
         client_name,
         contact,
+        email,
+        address,
         visit_type,
         start_time,
         planned_minutes,
@@ -39,15 +45,18 @@ module.exports = {
         notes,
         created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
       db.run(
         query,
         [
           unitId,
+          clientId,
           clientName,
           contact,
+          email,
+          address,
           visitType,
           startTime,
           plannedMinutes,
@@ -76,6 +85,25 @@ module.exports = {
         WHERE unit_id = ?
           AND status = 'open'
         ORDER BY start_time ASC
+      `;
+
+      db.all(query, [unitId], (err, rows) =>
+        err ? reject(err) : resolve(rows)
+      );
+    });
+  },
+
+  // --------------------------------------------------
+  // Buscar histórico: fechadas + canceladas por unidade
+  // --------------------------------------------------
+  findHistoryByUnit(unitId) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT *
+        FROM sessions
+        WHERE unit_id = ?
+          AND status IN ('closed', 'cancelled')
+        ORDER BY start_time DESC
       `;
 
       db.all(query, [unitId], (err, rows) =>
@@ -147,6 +175,38 @@ module.exports = {
   },
 
   // --------------------------------------------------
+  // Atualiza o Calendario do Google
+  // --------------------------------------------------
+  updateGoogleEventId(id, eventId) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE sessions SET google_event_id = ? WHERE id = ?`,
+        [eventId, id],
+        function (err) {
+          if (err) return reject(err);
+          resolve(this.changes);
+        }
+      );
+    });
+  },
+
+  // --------------------------------------------------
+  // Atualiza o Status da Sessão
+  // --------------------------------------------------
+  updateStatus(id, status) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE sessions SET status = ? WHERE id = ?`,
+        [status, id],
+        function (err) {
+          if (err) return reject(err);
+          resolve(this.changes);
+        }
+      );
+    });
+  },
+
+  // --------------------------------------------------
   // Fechar sessão (manual ou automática)
   // --------------------------------------------------
   close({
@@ -207,3 +267,4 @@ module.exports = {
     });
   }
 };
+

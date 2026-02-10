@@ -10,7 +10,6 @@ import TransactionFilters from '../../components/transactions/TransactionFilters
 import TransactionTable from '../../components/transactions/TransactionTable';
 import TransactionsDonut from '../../components/transactions/TransactionsDonut';
 
-
 const TransactionsList = () => {
     const [currency, setCurrency] = useState('EUR');
     const [filters, setFilters] = useState({
@@ -18,7 +17,7 @@ const TransactionsList = () => {
         category: '',
         start_date: '',
         end_date: '',
-        member_id: ''
+        payer_name: ''
     });
 
     const {
@@ -31,15 +30,20 @@ const TransactionsList = () => {
         refetch
     } = useFetchList('/transactions');
 
-    // Aplicando filtros localmente (ou podemos passar para o backend depois)
+    // Aplicando filtros localmente
     const filteredTransactions = transactions.filter(t => {
         const matchesCurrency = !currency || t.currency === currency;
         const matchesType = !filters.type || t.type === filters.type;
         const matchesCategory = !filters.category || t.category === filters.category;
-        const matchesMember = !filters.member_id || t.member_id === Number(filters.member_id);
+
+        // Filtra qualquer pagador (member, client ou ad-hoc)
+        const matchesPayer = !filters.payer_name ||
+            (t.payer_name && t.payer_name.toLowerCase().includes(filters.payer_name.toLowerCase()));
+
         const matchesStart = !filters.start_date || new Date(t.date) >= new Date(filters.start_date);
         const matchesEnd = !filters.end_date || new Date(t.date) <= new Date(filters.end_date);
-        return matchesCurrency && matchesType && matchesCategory && matchesMember && matchesStart && matchesEnd;
+
+        return matchesCurrency && matchesType && matchesCategory && matchesPayer && matchesStart && matchesEnd;
     });
 
     return (
@@ -49,12 +53,11 @@ const TransactionsList = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1>Transazioni</h1>
-                <Link to="/transactions/new" className="btn-primary">+ Nuova transazione</Link>
+                <Link to="/transactions/new" >+ Nuova transazione</Link>
             </div>
 
             {/* BALANCE OVERVIEW */}
             <BalanceOverview transactions={filteredTransactions} />
-
 
             {/* RESUMO GRÁFICO */}
             <TransactionsDonut
@@ -68,7 +71,6 @@ const TransactionsList = () => {
                 <option value="EUR">EUR (€)</option>
                 <option value="CHF">CHF (CHF)</option>
             </select>
-
 
             {/* FILTROS */}
             <TransactionFilters

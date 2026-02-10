@@ -5,40 +5,75 @@ import { Link } from 'react-router-dom';
 
 export default function TransactionTable({ transactions, loading, onDelete }) {
 
+    // Mapeamento dos tipos para italiano
+    const typeLabels = {
+        income: 'Entrate',
+        expense: 'Spese'
+    };
+
     const columns = [
         { key: 'id', label: 'ID' },
-        { key: 'date', label: 'Data' },
         { key: 'type', label: 'Tipo' },
-        { key: 'category', label: 'Categoria' },
-        { key: 'currency', label: 'Valuta' },
         { key: 'amount', label: 'Valore' },
-        { key: 'member_name', label: 'Pagatore' },
-        { key: 'created_by_name', label: 'Creatore' },
+        { key: 'payer_name', label: 'Pagatore' },
+        { key: 'category', label: 'Categoria' },
+        { key: 'date', label: 'Data' },
         { key: 'actions', label: 'Azioni' }
     ];
 
     if (loading) {
-        return <p className="text-gray-500">Caricamento delle transazioni...</p>;
+        return <p style={{ color: '#666' }}>Caricamento delle transazioni...</p>;
     }
 
-    // Adiciona coluna de ações para cada transação
-    const dataWithActions = transactions.map(t => ({
-        ...t,
-        actions: (
-            <div className="flex gap-2">
-                <Link to={`/transactions/${t.id}`} className="px-2 py-1 bg-yellow-500 text-white rounded">Modificare</Link>
+    const dataWithActions = transactions.map(t => {
+        const formatCurrency = (value, currency) => {
+            const locale = currency === 'CHF' ? 'de-CH' : 'it-IT';
+            return new Intl.NumberFormat(locale, {
+                style: 'currency',
+                currency,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        };
 
-                {onDelete && (
-                    <button
-                        onClick={() => onDelete(t.id)}
-                        className="px-2 py-1 bg-red-500 text-white rounded"
+        return {
+            ...t,
+            type: typeLabels[t.type] || t.type,
+            amount: formatCurrency(Number(t.amount), t.currency),
+            actions: (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Link
+                        to={`/transactions/${t.id}`}
+                        style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#1a347a',
+                            color: '#fff',
+                            borderRadius: '4px',
+                            textDecoration: 'none'
+                        }}
                     >
-                        Eliminare
-                    </button>
-                )}
-            </div>
-        )
-    }));
+                        Modificare
+                    </Link>
+                    
+                    {onDelete && (
+                        <button
+                            onClick={() => onDelete(t.id)}
+                            style={{
+                                padding: '4px 8px',
+                                backgroundColor: '#ef4444',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Eliminare
+                        </button>
+                    )}
+                </div>
+            )
+        };
+    });
 
     return (
         <Table

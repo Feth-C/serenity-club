@@ -1,3 +1,5 @@
+// backend/src/models/Transaction.js
+
 const db = require('../database/db');
 
 module.exports = {
@@ -7,16 +9,21 @@ module.exports = {
   // -----------------------------
   create(data) {
     const sql = `
-      INSERT INTO transactions
-      (member_id, unit_id, type, category, amount, currency, date, description, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    INSERT INTO transactions
+    (unit_id, payer_type, member_id, client_id, custom_payer_name,
+     type, category, amount, currency, date, description, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
     return new Promise((resolve, reject) => {
       db.run(
         sql,
         [
-          data.member_id,
           data.unit_id,
+          data.payer_type || null,
+          data.member_id || null,
+          data.client_id || null,
+          data.custom_payer_name || null,
           data.type,
           data.category,
           data.amount,
@@ -34,16 +41,24 @@ module.exports = {
   },
 
   // -----------------------------
-  // ADMIN → todas da unidade
+  // Listar todas as transações da unidade
   // -----------------------------
   findAllByUnit(unitId) {
     const sql = `
       SELECT
         t.*,
+        u.name AS created_by_name,
         m.name AS member_name,
-        u.name AS created_by_name
+        c.name AS client_name,
+        CASE
+          WHEN t.payer_type = 'member' THEN m.name
+          WHEN t.payer_type = 'client' THEN c.name
+          WHEN t.payer_type = 'ad-hoc' THEN t.custom_payer_name
+          ELSE 'Sconosciuto'
+        END AS payer_name
       FROM transactions t
       LEFT JOIN members m ON m.id = t.member_id
+      LEFT JOIN clients c ON c.id = t.client_id
       LEFT JOIN users u ON u.id = t.created_by
       WHERE t.unit_id = ?
       ORDER BY t.date DESC
@@ -57,16 +72,24 @@ module.exports = {
   },
 
   // -----------------------------
-  // MANAGER → apenas seus membros
+  // Apenas transações dos membros do manager
   // -----------------------------
   findByManagerAndUnit(managerId, unitId) {
     const sql = `
       SELECT
         t.*,
+        u.name AS created_by_name,
         m.name AS member_name,
-        u.name AS created_by_name
+        c.name AS client_name,
+        CASE
+          WHEN t.payer_type = 'member' THEN m.name
+          WHEN t.payer_type = 'client' THEN c.name
+          WHEN t.payer_type = 'ad-hoc' THEN t.custom_payer_name
+          ELSE 'Sconosciuto'
+        END AS payer_name
       FROM transactions t
       INNER JOIN members m ON m.id = t.member_id
+      LEFT JOIN clients c ON c.id = t.client_id
       LEFT JOIN users u ON u.id = t.created_by
       WHERE m.manager_id = ?
         AND t.unit_id = ?
@@ -81,12 +104,26 @@ module.exports = {
   },
 
   // -----------------------------
-  // Buscar por ID dentro da unidade
+  // Buscar transação por ID
   // -----------------------------
   findByIdAndUnit(id, unitId) {
     const sql = `
-      SELECT * FROM transactions
-      WHERE id = ? AND unit_id = ?
+      SELECT
+        t.*,
+        u.name AS created_by_name,
+        m.name AS member_name,
+        c.name AS client_name,
+        CASE
+          WHEN t.payer_type = 'member' THEN m.name
+          WHEN t.payer_type = 'client' THEN c.name
+          WHEN t.payer_type = 'ad-hoc' THEN t.custom_payer_name
+          ELSE 'Sconosciuto'
+        END AS payer_name
+      FROM transactions t
+      LEFT JOIN members m ON m.id = t.member_id
+      LEFT JOIN clients c ON c.id = t.client_id
+      LEFT JOIN users u ON u.id = t.created_by
+      WHERE t.id = ? AND t.unit_id = ?
     `;
     return new Promise((resolve, reject) => {
       db.get(sql, [id, unitId], (err, row) => {
@@ -102,13 +139,26 @@ module.exports = {
   update(id, data) {
     const sql = `
       UPDATE transactions
-      SET type = ?, category = ?, amount = ?, currency = ?, date = ?, description = ?
+      SET payer_type = ?,
+          member_id = ?,
+          client_id = ?,
+          custom_payer_name = ?,
+          type = ?,
+          category = ?,
+          amount = ?,
+          currency = ?,
+          date = ?,
+          description = ?
       WHERE id = ?
     `;
     return new Promise((resolve, reject) => {
       db.run(
         sql,
         [
+          data.payer_type || null,
+          data.member_id || null,
+          data.client_id || null,
+          data.custom_payer_name || null,
           data.type,
           data.category,
           data.amount,
@@ -130,14 +180,10 @@ module.exports = {
   // -----------------------------
   delete(id) {
     return new Promise((resolve, reject) => {
-      db.run(
-        `DELETE FROM transactions WHERE id = ?`,
-        [id],
-        function (err) {
-          if (err) return reject(err);
-          resolve(this.changes);
-        }
-      );
+      db.run(`DELETE FROM transactions WHERE id = ?`, [id], function (err) {
+        if (err) return reject(err);
+        resolve(this.changes);
+      });
     });
   }
 };

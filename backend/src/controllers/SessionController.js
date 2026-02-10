@@ -1,29 +1,31 @@
 // backend/src/controllers/SessionController.js
 
 const Session = require('../models/Session');
+const Client = require('../models/Client');
+const SessionService = require('../services/SessionService');
+const GoogleCalendarService = require('../services/GoogleCalendarService'); // 🔹 NOVO
 const AppError = require('../errors/AppError');
 const formatResponse = require('../utils/responseFormatter');
 
 module.exports = {
 
-  // --------------------------------------------------
-  // Criar nova sessão
-  // --------------------------------------------------
+  // ==================================================
+  // CREATE — agora cria evento no Google Calendar
+  // ==================================================
   async create(req, res) {
     const { userId, userRole, activeUnitId } = req;
 
-    if (!activeUnitId) {
-      throw new AppError('Unità attiva non definita.', 400);
-    }
-
-    if (!['admin', 'manager', 'employee'].includes(userRole)) {
+    if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
+    if (!['admin', 'manager', 'employee'].includes(userRole))
       throw new AppError('Accesso negato.', 403);
-    }
 
-    const {
+    let {
+      visit_type,
+      client_id,
       client_name,
       contact,
-      visit_type,
+      email,
+      address,
       start_time,
       planned_minutes,
       planned_amount,
@@ -31,26 +33,78 @@ module.exports = {
       notes
     } = req.body;
 
-    if (!start_time || !planned_minutes) {
-      throw new AppError('Orario iniziale e durata sono obbligatori.', 400);
-    }
+    if (!visit_type || !start_time || !planned_minutes)
+      throw new AppError(
+        'Tipo visita, orario iniziale e durata sono obbligatori.',
+        400
+      );
 
     const startTime = new Date(start_time);
-    if (isNaN(startTime)) {
-      throw new AppError('Formato data non valido.', 400);
-    }
+    if (isNaN(startTime)) throw new AppError('Formato data non valido.', 400);
 
     const plannedMinutes = Number(planned_minutes);
-    if (plannedMinutes <= 0) {
+    if (plannedMinutes <= 0)
       throw new AppError('Durata non valida.', 400);
+
+    // ------------------------------
+    // Resolver cliente (SUA LÓGICA ORIGINAL)
+    // ------------------------------
+    let finalClientId = client_id || null;
+
+    if (visit_type === 'first') {
+      if (!client_name)
+        throw new AppError(
+          'Nome cliente obbligatorio per prima visita.',
+          400
+        );
+
+      const existingClient = await Client.findByNameInUnit(
+        client_name,
+        activeUnitId
+      );
+
+      if (existingClient) {
+        finalClientId = existingClient.id;
+      } else {
+        const client = await Client.create({
+          unitId: activeUnitId,
+          name: client_name,
+          contact,
+          email,
+          address,
+          notes,
+          createdBy: userId
+        });
+        finalClientId = client.id;
+      }
     }
 
+    if (visit_type === 'return' && !finalClientId)
+      throw new AppError(
+        'Cliente deve ser selecionado para visita de retorno.',
+        400
+      );
 
+    // Garantir nome do cliente no RETURN
+    let finalClientName = client_name;
+
+    if (visit_type === 'return') {
+      const client = await Client.findById(finalClientId);
+      if (!client) throw new AppError('Cliente não encontrado.', 404);
+      finalClientName = client.name;
+    }
+
+    // ------------------------------
+    // Criar sessão (BANCO)
+    // ------------------------------
     const session = await Session.create({
       unitId: activeUnitId,
-      clientName: client_name,
+      clientId: finalClientId,
+      clientName: finalClientName,
       contact,
-      visitType: visit_type || 'first',
+      email,
+      address,
+      visitType: visit_type,
       startTime: startTime.toISOString(),
       plannedMinutes,
       plannedAmount: planned_amount,
@@ -59,51 +113,78 @@ module.exports = {
       createdBy: userId
     });
 
+    // ------------------------------
+    // 🔹 CRIAR EVENTO NO GOOGLE
+    // ------------------------------
+    const fullSession = await Session.getById(session.id);
+
+    try {
+      const eventId =
+        await GoogleCalendarService.createSessionEvent(fullSession);
+
+      // já foi salvo no model Session.updateGoogleEventId
+      console.log('Google Event criado:', eventId);
+    } catch (err) {
+      console.error('Erro Google Calendar:', err);
+      // NÃO quebra o fluxo do sistema — sessão já foi criada
+    }
+
     res
       .status(201)
       .json(formatResponse(session, 'Sessione creata con successo.'));
   },
 
-  // --------------------------------------------------
-  // Listar sessões abertas
-  // --------------------------------------------------
+  // ==================================================
+  // LIST OPEN — INALTERADO
+  // ==================================================
   async listOpen(req, res) {
     const { activeUnitId } = req;
 
-    if (!activeUnitId) {
+    if (!activeUnitId)
       throw new AppError('Unità attiva non definita.', 400);
-    }
 
     const sessions = await Session.findOpenByUnit(activeUnitId);
+    res.json(formatResponse(sessions));
+  },
+
+  // ==================================================
+  // LIST HISTORY — NOVO
+  // ==================================================
+  async listHistory(req, res) {
+    const { activeUnitId } = req;
+
+    if (!activeUnitId)
+      throw new AppError('Unità attiva non definita.', 400);
+
+    const sessions = await Session.findHistoryByUnit(activeUnitId);
 
     res.json(formatResponse(sessions));
   },
 
-  // --------------------------------------------------
-  // Buscar sessão por ID
-  // --------------------------------------------------
+  // ==================================================
+  // GET — INALTERADO
+  // ==================================================
   async get(req, res) {
     const { activeUnitId } = req;
     const id = Number(req.params.id);
 
     const session = await Session.getById(id);
-    if (!session) {
+    if (!session)
       throw new AppError('Sessione non trovata.', 404);
-    }
 
-    if (session.unit_id !== activeUnitId) {
+    if (session.unit_id !== activeUnitId)
       throw new AppError('Accesso negato.', 403);
-    }
 
     res.json(formatResponse(session));
   },
 
-  // --------------------------------------------------
-  // Atualizar sessão aberta (alterar cliente, data ou minutos)
-  // --------------------------------------------------
+  // ==================================================
+  // UPDATE — agora também atualiza Google Calendar
+  // ==================================================
   async update(req, res) {
     const { activeUnitId, userRole } = req;
     const id = Number(req.params.id);
+
     const {
       client_name,
       contact,
@@ -115,35 +196,27 @@ module.exports = {
       notes
     } = req.body;
 
-    if (!['admin', 'manager'].includes(userRole)) {
+    if (!['admin', 'manager'].includes(userRole))
       throw new AppError('Accesso negato.', 403);
-    }
-
-    if (
-      client_name === undefined &&
-      contact === undefined &&
-      visit_type === undefined &&
-      start_time === undefined &&
-      planned_minutes === undefined &&
-      planned_amount === undefined &&
-      currency === undefined &&
-      notes === undefined
-    ) {
-      throw new AppError('Nessun dato da aggiornare.', 400);
-    }
 
     const session = await Session.getById(id);
-    if (!session) throw new AppError('Sessione non trovata.', 404);
-    if (session.unit_id !== activeUnitId) throw new AppError('Accesso negato.', 403);
-    if (session.status !== 'open') throw new AppError('Sessione già chiusa.', 400);
+    if (!session)
+      throw new AppError('Sessione non trovata.', 404);
+
+    if (session.unit_id !== activeUnitId)
+      throw new AppError('Accesso negato.', 403);
+
+    if (session.status !== 'open')
+      throw new AppError('Sessione già chiusa.', 400);
 
     const updatedStart = start_time
       ? new Date(start_time).toISOString()
       : session.start_time;
 
-    const updatedPlanned = planned_minutes !== undefined
-      ? Number(planned_minutes)
-      : session.planned_minutes;
+    const updatedPlanned =
+      planned_minutes !== undefined
+        ? Number(planned_minutes)
+        : session.planned_minutes;
 
     await Session.updateOpenSession(id, activeUnitId, {
       client_name,
@@ -157,51 +230,99 @@ module.exports = {
     });
 
     const updated = await Session.getById(id);
+
+    // ------------------------------
+    // 🔹 ATUALIZAR GOOGLE CALENDAR
+    // ------------------------------
+    try {
+      await GoogleCalendarService.updateSessionEvent(updated);
+      console.log('Google Event atualizado');
+    } catch (err) {
+      console.error('Erro ao atualizar Google Calendar:', err);
+    }
+
     res.json(formatResponse(updated, 'Sessione aggiornata'));
   },
 
-  // --------------------------------------------------
-  // Fechamento manual da sessão
-  // --------------------------------------------------
+  // ==================================================
+  // CLOSE — você já tem via SessionService (MANTIDO)
+  // ==================================================
   async close(req, res) {
-    const { activeUnitId, userRole } = req;
+    const { activeUnitId, userRole, userId } = req;
     const id = Number(req.params.id);
 
     if (!['admin', 'manager', 'employee'].includes(userRole)) {
       throw new AppError('Accesso negato.', 403);
     }
 
-    const session = await Session.getById(id);
-    if (!session) {
-      throw new AppError('Sessione non trovata.', 404);
-    }
-
-    if (session.unit_id !== activeUnitId) {
-      throw new AppError('Accesso negato.', 403);
-    }
-
-    if (session.status !== 'open') {
-      throw new AppError('Sessione già chiusa.', 400);
-    }
-
-    const {
+    let {
+      payer_type,
+      payer_name,
       final_amount,
       paid_amount,
       payment_method,
       notes
     } = req.body;
 
-    const now = new Date();
-
-    await Session.close({
-      id,
-      actualEndTime: now.toISOString(),
-      finalAmount: final_amount,
-      paidAmount: paid_amount,
-      paymentMethod: payment_method,
-      notes
+    const closedSession = await SessionService.closeSession({
+      sessionId: id,
+      unitId: activeUnitId,
+      userId,
+      payload: {
+        actualEndTime: new Date().toISOString(),
+        payerType: payer_type,
+        payerName: payer_name,
+        finalAmount: Number(final_amount),
+        paidAmount: Number(paid_amount),
+        paymentMethod: payment_method,
+        notes
+      }
     });
 
-    res.json(formatResponse(null, 'Sessione chiusa con successo.'));
+    res.json(
+      formatResponse(closedSession, 'Sessione chiusa con successo.')
+    );
+  },
+
+  // ==================================================
+  // 🔹 NOVO: CANCEL — atualiza Google Calendar
+  // ==================================================
+  async cancel(req, res) {
+    const { activeUnitId, userId, userRole } = req;
+    const id = Number(req.params.id);
+
+    if (!['admin', 'manager'].includes(userRole)) {
+      throw new AppError('Accesso negato.', 403);
+    }
+
+    const session = await Session.getById(id);
+    if (!session)
+      throw new AppError('Sessione non trovata.', 404);
+
+    if (session.unit_id !== activeUnitId)
+      throw new AppError('Accesso negato.', 403);
+
+    // marcar como cancelada no banco
+    await Session.updateStatus(id, 'cancelled');
+
+    // recarregar
+    const updated = await Session.getById(id);
+
+    // ------------------------------
+    // 🔹 Atualizar evento no Google como CANCELADO
+    // ------------------------------
+    try {
+      await GoogleCalendarService.cancelSessionEvent(
+        updated,
+        userId
+      );
+      console.log('Evento Google marcado como cancelado');
+    } catch (err) {
+      console.error('Erro Google Calendar (cancel):', err);
+    }
+
+    res.json(
+      formatResponse(updated, 'Sessione annullata con successo.')
+    );
   }
 };

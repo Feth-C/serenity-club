@@ -26,6 +26,12 @@ router.post('/', validate(sessionCreateSchema), SessionController.create);
 router.get('/open', SessionController.listOpen);
 
 // --------------------------------------------------
+// Histórico de sessões (fechadas + canceladas)
+// GET /sessions/history
+// --------------------------------------------------
+router.get('/history', SessionController.listHistory);
+
+// --------------------------------------------------
 // Buscar sessão por ID
 // GET /sessions/:id
 // --------------------------------------------------
@@ -42,5 +48,6 @@ router.put('/:id', validate(sessionUpdateSchema), SessionController.update);
 // PUT /sessions/:id/close
 // --------------------------------------------------
 router.put('/:id/close', validate(sessionCloseSchema), SessionController.close);
+router.put('/:id/cancel', SessionController.cancel);
 
 module.exports = router;

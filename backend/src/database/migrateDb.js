@@ -98,6 +98,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   unit_id INTEGER,
   member_id INTEGER,
+  client_id INTEGER,
+  payer_type TEXT CHECK(payer_type IN ('member','client','ad-hoc')), -- novo campo
+  custom_payer_name TEXT,                                            -- novo campo (nome livre)
   type TEXT NOT NULL CHECK(type IN ('income','expense')),
   category TEXT,
   currency TEXT NOT NULL DEFAULT 'EUR',
@@ -107,6 +110,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   created_by INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(member_id) REFERENCES members(id),
+  FOREIGN KEY(client_id) REFERENCES clients(id), -- manter integridade se member, clients serão tratados via lógica
   FOREIGN KEY(created_by) REFERENCES users(id),  
   FOREIGN KEY(unit_id) REFERENCES units(id)
 )
@@ -175,6 +179,26 @@ db.run(`
 `);
 
 // -----------------------------
+// CLIENTS
+// -----------------------------
+db.run(`
+  CREATE TABLE IF NOT EXISTS clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    contact TEXT,
+    email TEXT,
+    address TEXT,
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(unit_id) REFERENCES units(id),
+    FOREIGN KEY(created_by) REFERENCES users(id),
+    UNIQUE(unit_id, name)
+  )
+`);
+
+// -----------------------------
 // SESSIONS
 // -----------------------------
 db.run(`
@@ -190,7 +214,7 @@ db.run(`
     expected_end_time DATETIME NOT NULL,
     actual_end_time DATETIME,       -- preenchido no fechamento real
     status TEXT NOT NULL 
-      CHECK (status IN ('open','closed')) 
+      CHECK (status IN ('open','closed', 'cancelled')) 
       DEFAULT 'open',
     currency TEXT NOT NULL DEFAULT 'EUR',
     planned_amount NUMERIC,         -- valor mínimo esperado
@@ -198,6 +222,7 @@ db.run(`
     paid_amount NUMERIC DEFAULT 0,
     payment_method TEXT,            -- cash, card, digital, etc
     notes TEXT,
+    google_event_id TEXT,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(unit_id) REFERENCES units(id),

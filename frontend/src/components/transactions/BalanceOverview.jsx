@@ -1,72 +1,101 @@
 // frontend/src/components/transactions/BalanceOverview.jsx
 
 export default function BalanceOverview({ transactions, summary }) {
-    // ------------------------
-    // Dashboard: versão summary
-    // ------------------------
-    if (summary) {
-        const { totalIncome = 0, totalExpense = 0, balance = 0, currency = 'EUR' } = summary;
 
-        const formatCurrency = (value) =>
-            value.toLocaleString(currency === 'CHF' ? 'de-CH' : 'it-IT', {
-                style: 'currency',
-                currency
-            });
+    // -----------------------------
+    // FORMATAÇÃO PADRÃO ÚNICA
+    // -----------------------------
+    const formatCurrency = (value, currency = 'EUR') => {
+        const locale = currency === 'CHF' ? 'de-CH' : 'it-IT';
+
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value);
+    };
+
+    // -----------------------------
+    // DASHBOARD (quando vem summary do backend)
+    // -----------------------------
+    if (summary) {
+        const {
+            totalIncome = 0,
+            totalExpense = 0,
+            balance = 0,
+            currency = 'EUR'
+        } = summary;
 
         return (
             <div style={cardContainer}>
-                <Card title="🟢 Entrate" value={formatCurrency(totalIncome)} />
-                <Card title="🔴 Spese" value={formatCurrency(totalExpense)} />
-                <Card title="💲 Balance" value={formatCurrency(balance)} />
+                <Card title="🟢 Entrate" value={formatCurrency(totalIncome, currency)} />
+                <Card title="🔴 Spese" value={formatCurrency(totalExpense, currency)} />
+                <Card title="💲 Balance" value={formatCurrency(balance, currency)} />
             </div>
         );
     }
 
-    // ------------------------
-    // Páginas antigas: transactions
-    // ------------------------
+    // -----------------------------
+    // PÁGINA ANTIGA (lista de transações)
+    // -----------------------------
     if (!Array.isArray(transactions) || transactions.length === 0) {
         return <p>Nessuna transazione</p>;
     }
 
-    const groupByCurrency = (type) => {
-        return transactions
-            .filter((t) => t.type === type)
+    const groupByCurrency = (type) =>
+        transactions
+            .filter(t => t.type === type)
             .reduce((acc, t) => {
                 acc[t.currency] = (acc[t.currency] || 0) + Number(t.amount);
                 return acc;
             }, {});
-    };
 
     const incomeByCurrency = groupByCurrency('income');
     const expenseByCurrency = groupByCurrency('expense');
 
-    const formatCurrency = (value, currency) =>
-        value.toLocaleString(currency === 'CHF' ? 'de-CH' : 'it-IT', {
-            style: 'currency',
-            currency
-        });
-
-    const currencies = Object.keys({ ...incomeByCurrency, ...expenseByCurrency });
+    const currencies = Object.keys({
+        ...incomeByCurrency,
+        ...expenseByCurrency
+    });
 
     return (
         <div style={cardContainer}>
+
             <Card
                 title="🟢 Entrate"
-                value={currencies.map((curr) => formatCurrency(incomeByCurrency[curr] || 0, curr)).join(' | ')}
+                value={
+                    currencies
+                        .map(curr =>
+                            formatCurrency(incomeByCurrency[curr] || 0, curr)
+                        )
+                        .join('  |  ')
+                }
             />
+
             <Card
                 title="🔴 Spese"
-                value={currencies.map((curr) => formatCurrency(expenseByCurrency[curr] || 0, curr)).join(' | ')}
+                value={
+                    currencies
+                        .map(curr =>
+                            formatCurrency(expenseByCurrency[curr] || 0, curr)
+                        )
+                        .join('  |  ')
+                }
             />
+
             <Card
                 title="💲 Balance"
-                value={currencies
-                    .map((curr) => {
-                        const balance = (incomeByCurrency[curr] || 0) - (expenseByCurrency[curr] || 0);
-                        return formatCurrency(balance, curr);
-                    })
-                    .join(' | ')}
+                value={
+                    currencies
+                        .map(curr => {
+                            const balance =
+                                (incomeByCurrency[curr] || 0) -
+                                (expenseByCurrency[curr] || 0);
+                            return formatCurrency(balance, curr);
+                        })
+                        .join('  |  ')
+                }
             />
         </div>
     );
@@ -85,12 +114,13 @@ const Card = ({ title, value }) => (
 const cardContainer = {
     display: 'flex',
     gap: '20px',
-    marginBottom: '30px'
+    marginBottom: '30px',
+    flexWrap: 'wrap'
 };
 
 const cardStyle = {
     padding: '15px',
     border: '1px solid #e5e7eb',
     borderRadius: '6px',
-    minWidth: '200px'
+    minWidth: '220px'
 };

@@ -46,13 +46,14 @@ const sessionUpdateSchema = z.object({
 // -----------------------------
 const sessionCloseSchema = z.object({
   body: z.object({
+    payer_type: z.enum(['client', 'member', 'ad-hoc']),
+    payer_name: z.string().min(2),
     final_amount: z.number().optional(),
     paid_amount: z.number().optional(),
-    payment_method: z.enum(['cash','card','twin','digital']).optional(),
+    payment_method: z.enum(['cash', 'card', 'twin', 'transfer']).optional(),
     notes: z.string().optional()
   }),
 });
-
 
 module.exports = {
   sessionCreateSchema,

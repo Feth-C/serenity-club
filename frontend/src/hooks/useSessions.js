@@ -3,8 +3,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   fetchOpenSessions,
+  fetchSessionHistory,
   createSession,
-  closeSession
+  closeSession,
+  cancelSession
 } from '../api/sessions';
 
 /**
@@ -25,19 +27,23 @@ export function getNextRoundedHour() {
 
 export default function useSessions() {
   const [sessions, setSessions] = useState([]);
+  const [historySessions, setHistorySessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // ----------------------------------
-  // Buscar sessões abertas
+  // Buscar TUDO (abertas + histórico)
   // ----------------------------------
-  const loadOpenSessions = useCallback(async () => {
+  const loadAllSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetchOpenSessions();
-      setSessions(response || []);
+      const open = await fetchOpenSessions();
+      const history = await fetchSessionHistory(); // ← novo endpoint
+
+      setSessions(open || []);
+      setHistorySessions(history || []);
     } catch (err) {
       setError(err);
     } finally {
@@ -53,7 +59,7 @@ export default function useSessions() {
 
     try {
       await createSession(data);
-      await loadOpenSessions();
+      await loadAllSessions();
     } catch (err) {
       setError(err);
       throw err;
@@ -68,7 +74,22 @@ export default function useSessions() {
 
     try {
       await closeSession(id, data);
-      await loadOpenSessions();
+      await loadAllSessions();
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  };
+
+  // ----------------------------------
+  // Cancelar sessão
+  // ----------------------------------
+  const cancelSessionAction = async (id) => {
+    setError(null);
+
+    try {
+      await cancelSession(id);
+      await loadAllSessions();
     } catch (err) {
       setError(err);
       throw err;
@@ -79,15 +100,18 @@ export default function useSessions() {
   // Auto-load inicial
   // ----------------------------------
   useEffect(() => {
-    loadOpenSessions();
-  }, [loadOpenSessions]);
+    loadAllSessions();
+  }, [loadAllSessions]);
 
   return {
     sessions,
+    historySessions,
     loading,
     error,
-    refetch: loadOpenSessions,
+    refetch: loadAllSessions,
     startSession,
-    endSession
+    endSession,
+    cancelSession: cancelSessionAction
   };
+
 }
