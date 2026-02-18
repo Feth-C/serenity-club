@@ -6,7 +6,7 @@ import { normalizeItems } from '../../utils/normalizeItems';
 import api from '../../api/api';
 import Card from '../../components/common/Card';
 import Table from '../../components/common/Table';
-import DonutChart from '../../components/charts/DonutChart';
+import DonutChart from '../../components/common/DonutChart';
 import LogoutButton from '../../components/common/LogoutButton';
 
 const Dashboard = () => {

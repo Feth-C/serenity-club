@@ -14,11 +14,10 @@ import EmployeesList from '../pages/Employees/EmployeesList';
 import EmployeeForm from '../pages/Employees/EmployeeForm';
 import DocumentsList from '../pages/Documents/DocumentsList';
 import DocumentForm from '../pages/Documents/DocumentForm';
-import ReportsMonthly from '../pages/Reports/ReportsMonthly';
-// import ReportsDetailed from '../pages/Reports/ReportsDetailed'; - DESATIVADO
 import MemberHome from '../pages/Members/MemberHome';
 import TransactionsList from '../pages/Transactions/TransactionsList';
 import TransactionForm from '../pages/Transactions/TransactionForm';
+import ReportsHub from '../pages/Reports/ReportsHub';
 import FinanceDashboard from '../pages/Dashboard/FinanceDashboard';
 import SessionForm from '../pages/Sessions/SessionForm';
 import SessionsList from '../pages/Sessions/SessionsList';
@@ -56,10 +55,6 @@ const AppRoutes = () => {
       <Route path="/documents/new" element={user ? <DocumentForm /> : <Navigate to="/login" />} />
       <Route path="/documents/edit/:id" element={user ? <DocumentForm /> : <Navigate to="/login" />} />
 
-      {/* Reports */}
-      {<Route path="/reports" element={user ? <ReportsMonthly /> : <Navigate to="/login" />} />}
-      {/*<Route path="/reports/dettagliati" element={user ? <ReportsDetailed /> : <Navigate to="/login" />} />  - DESATIVADO*/}
-
       {/* Transactions */}
       <Route path="/transactions" element={user ? <TransactionsList /> : <Navigate to="/login" />} />
       <Route path="/transactions/new" element={user ? <TransactionForm /> : <Navigate to="/login" />} />
@@ -73,7 +68,13 @@ const AppRoutes = () => {
       <Route path="/sessions/new" element={user ? <SessionForm mode="create" /> : <Navigate to="/login" />} />
       <Route path="/sessions/edit/:id" element={user ? <SessionForm mode="edit" /> : <Navigate to="/login" />} />
       <Route path="/sessions/close/:id" element={user ? <SessionCloseForm mode="close" /> : <Navigate to="/login" />} />
-      
+
+      {/* Reports */}
+      <Route
+        path="/reports"
+        element={user && ['admin', 'manager'].includes(user.role) ? <ReportsHub /> : <Navigate to="/login" />}
+      />
+
     </Routes>
   );
 };

@@ -7,9 +7,9 @@ const addMinutes = (date, minutes) =>
 
 module.exports = {
 
-  // --------------------------------------------------
+  // -----------------------------
   // Criar nova sessão
-  // --------------------------------------------------
+  // -----------------------------
   create({
     unitId,
     clientId = null,
@@ -74,9 +74,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Buscar sessões abertas por unidade
-  // --------------------------------------------------
+  // -----------------------------
   findOpenByUnit(unitId) {
     return new Promise((resolve, reject) => {
       const query = `
@@ -93,9 +93,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Buscar histórico: fechadas + canceladas por unidade
-  // --------------------------------------------------
+  // -----------------------------
   findHistoryByUnit(unitId) {
     return new Promise((resolve, reject) => {
       const query = `
@@ -112,9 +112,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Buscar sessão por ID (sempre validar unit no controller)
-  // --------------------------------------------------
+  // -----------------------------
   getById(id) {
     return new Promise((resolve, reject) => {
       const query = `
@@ -130,9 +130,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Atualizar Sessão
-  // --------------------------------------------------
+  // -----------------------------
   updateOpenSession(id, unitId, data) {
     return new Promise((resolve, reject) => {
       const fields = [];
@@ -174,9 +174,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Atualiza o Calendario do Google
-  // --------------------------------------------------
+  // -----------------------------
   updateGoogleEventId(id, eventId) {
     return new Promise((resolve, reject) => {
       db.run(
@@ -190,9 +190,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Atualiza o Status da Sessão
-  // --------------------------------------------------
+  // -----------------------------
   updateStatus(id, status) {
     return new Promise((resolve, reject) => {
       db.run(
@@ -206,9 +206,9 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Fechar sessão (manual ou automática)
-  // --------------------------------------------------
+  // -----------------------------
   close({
     id,
     actualEndTime,
@@ -248,10 +248,10 @@ module.exports = {
     });
   },
 
-  // --------------------------------------------------
+  // -----------------------------
   // Buscar sessões que deveriam estar fechadas
   // (para job automático)
-  // --------------------------------------------------
+  // -----------------------------
   findExpiredOpenSessions(now) {
     return new Promise((resolve, reject) => {
       const query = `

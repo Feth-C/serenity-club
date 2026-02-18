@@ -3,7 +3,7 @@
 import AppRoutes from './routes/AppRoutes'; //
 import { useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
-import Header from './components/header/Header';
+import Header from './components/layout/Header';
 
 function App() { //
   const { user } = useContext(AuthContext);

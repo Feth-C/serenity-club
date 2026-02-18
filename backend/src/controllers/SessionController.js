@@ -9,9 +9,9 @@ const formatResponse = require('../utils/responseFormatter');
 
 module.exports = {
 
-  // ==================================================
+  // ------------------------------
   // CREATE — agora cria evento no Google Calendar
-  // ==================================================
+  // ------------------------------
   async create(req, res) {
     const { userId, userRole, activeUnitId } = req;
 
@@ -85,7 +85,9 @@ module.exports = {
         400
       );
 
+    // ------------------------------
     // Garantir nome do cliente no RETURN
+    // ------------------------------
     let finalClientName = client_name;
 
     if (visit_type === 'return') {
@@ -134,9 +136,9 @@ module.exports = {
       .json(formatResponse(session, 'Sessione creata con successo.'));
   },
 
-  // ==================================================
+  // ------------------------------
   // LIST OPEN — INALTERADO
-  // ==================================================
+  // ------------------------------
   async listOpen(req, res) {
     const { activeUnitId } = req;
 
@@ -147,9 +149,9 @@ module.exports = {
     res.json(formatResponse(sessions));
   },
 
-  // ==================================================
+  // ------------------------------
   // LIST HISTORY — NOVO
-  // ==================================================
+  // ------------------------------
   async listHistory(req, res) {
     const { activeUnitId } = req;
 
@@ -161,9 +163,9 @@ module.exports = {
     res.json(formatResponse(sessions));
   },
 
-  // ==================================================
+  // ------------------------------
   // GET — INALTERADO
-  // ==================================================
+  // ------------------------------
   async get(req, res) {
     const { activeUnitId } = req;
     const id = Number(req.params.id);
@@ -178,9 +180,9 @@ module.exports = {
     res.json(formatResponse(session));
   },
 
-  // ==================================================
+  // ------------------------------
   // UPDATE — agora também atualiza Google Calendar
-  // ==================================================
+  // ------------------------------
   async update(req, res) {
     const { activeUnitId, userRole } = req;
     const id = Number(req.params.id);
@@ -244,9 +246,9 @@ module.exports = {
     res.json(formatResponse(updated, 'Sessione aggiornata'));
   },
 
-  // ==================================================
+  // ------------------------------
   // CLOSE — você já tem via SessionService (MANTIDO)
-  // ==================================================
+  // ------------------------------
   async close(req, res) {
     const { activeUnitId, userRole, userId } = req;
     const id = Number(req.params.id);
@@ -284,9 +286,9 @@ module.exports = {
     );
   },
 
-  // ==================================================
+  // ------------------------------
   // 🔹 NOVO: CANCEL — atualiza Google Calendar
-  // ==================================================
+  // ------------------------------
   async cancel(req, res) {
     const { activeUnitId, userId, userRole } = req;
     const id = Number(req.params.id);
