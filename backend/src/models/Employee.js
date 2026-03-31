@@ -21,37 +21,42 @@ module.exports = {
   },
 
   // -----------------------------
-  // Listar funcionários
+  // Listar funcionários com paginação
   // -----------------------------
-  findAll(filters = {}, unitId = null) {
+  findAllPaginated(filters = {}, unitId, limit = 10, offset = 0) {
     return new Promise((resolve, reject) => {
-      let query = `
-        SELECT id, name, email, phone, role, user_id, status, manager_id, unit_id, created_at
-        FROM employees
-        WHERE 1=1
-      `;
       const params = [];
+      let whereClause = `WHERE unit_id = ?`;
+      params.push(unitId);
 
       if (filters.manager_id) {
-        query += ` AND manager_id = ?`;
+        whereClause += ' AND manager_id = ?';
         params.push(filters.manager_id);
       }
 
       if (filters.status) {
-        query += ` AND status = ?`;
+        whereClause += ' AND status = ?';
         params.push(filters.status);
       }
 
-      if (unitId) {
-        query += ` AND unit_id = ?`;
-        params.push(unitId);
-      }
-
-      query += ` ORDER BY id DESC`;
-
-      db.all(query, params, (err, rows) => {
+      // 🔹 Total
+      const totalQuery = `SELECT COUNT(*) as total FROM employees ${whereClause}`;
+      db.get(totalQuery, params, (err, totalRow) => {
         if (err) return reject(err);
-        resolve(rows);
+        const total = totalRow.total;
+
+        // 🔹 Dados paginados
+        const dataQuery = `
+          SELECT *
+          FROM employees
+          ${whereClause}
+          ORDER BY id DESC
+          LIMIT ? OFFSET ?
+        `;
+        db.all(dataQuery, [...params, limit, offset], (err2, rows) => {
+          if (err2) return reject(err2);
+          resolve({ rows: rows || [], total });
+        });
       });
     });
   },

@@ -1,18 +1,31 @@
 // frontend/src/App.jsx
 
-import AppRoutes from './routes/AppRoutes'; //
+import AppRoutes from './routes/AppRoutes';
 import { useContext } from 'react';
 import { AuthContext } from './contexts/AuthContext';
-import Header from './components/header/Header';
+import MainLayout from './layouts/MainLayout';
+import MemberLayout from './layouts/MemberLayout';
+import "./styles/global.css";
 
-function App() { //
+function App() {
   const { user } = useContext(AuthContext);
 
-  return ( //
-    <>
-      {user && <Header user={user} />}
+  if (!user) {
+    return <AppRoutes />;
+  }
+
+  if (user.role === "member") {
+    return (
+      <MemberLayout user={user}>
+        <AppRoutes />
+      </MemberLayout>
+    );
+  }
+
+  return (
+    <MainLayout user={user}>
       <AppRoutes />
-    </> // <AppRoutes /> 
+    </MainLayout>
   );
 }
 

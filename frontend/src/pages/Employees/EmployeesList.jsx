@@ -1,79 +1,107 @@
 // frontend/src/pages/Employees/EmployeesList.jsx
 
-import { Link } from 'react-router-dom';
-import useFetchList from '../../hooks/useFetchList';
-import BackButton from '../../components/common/BackButton';
-import Table from '../../components/common/Table';
+import { useNavigate } from "react-router-dom";
+import useFetchList from "../../hooks/useFetchList";
+import Table from "../../components/ui/Table/Table";
+import PageLayout from "../../components/layout/PageLayout/PageLayout";
+import Button from "../../components/ui/Button/Button";
+import Pagination from "../../components/ui/Pagination/Pagination";
 
 const EmployeesList = () => {
+  const navigate = useNavigate();
+
   const {
     items: employees,
     loading,
     error,
     page,
     totalPages,
-    statusFilter,
+    totalItems,
+    filters,
     setPage,
-    setStatusFilter,
-  } = useFetchList('/employees');
+    setFilters,
+  } = useFetchList("/employees");
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* BOTÃO VOLTAR */}
-      <BackButton />
-      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Dipendenti</h1>
-
-      {/* FILTRO + BOTÃO NUOVO DIPENDENTE */}
-      <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">Tutti</option>
-            <option value="active">Attivo</option>
-            <option value="inactive">Inattivo</option>
-          </select>
-        </div>
-
-        <div>
-          <Link to="/employees/new">
-            + Nuovo Dipendente
-          </Link>
-        </div>
-      </div>
-
+    <PageLayout
+      title="👨‍💼 Dipendenti"
+      subtitle="Gestione dei dipendenti e delle relazioni"
+      backButton={
+        <Button variant="secondary" size="md" onClick={() => navigate(-1)}>
+          ← Indietro
+        </Button>
+      }
+      actions={
+        <Button variant="primary" size="md" onClick={() => navigate("/employees/new")}>
+          + Nuovo Dipendente
+        </Button>
+      }
+      filters={
+        <select
+          className="form-select"
+          value={filters.status || ""}
+          onChange={(e) => {
+            setFilters({ status: e.target.value });
+          }}
+        >
+          <option value="">Tutti</option>
+          <option value="active">Attivi</option>
+          <option value="inactive">Inattivi</option>
+        </select>
+      }
+      pagination={
+        !loading && !error && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPrev={() => setPage(page - 1)}
+            onNext={() => setPage(page + 1)}
+          />
+        )
+      }
+    >
       {loading && <p>Caricamento...</p>}
-      {!loading && error && <p style={{ color: 'red' }}>{error}</p>}
+      {!loading && error && <p className="text-error">{error}</p>}
 
       {!loading && !error && (
-        <>
-          <Table
-            columns={[
-              { key: 'name', label: 'Nome' },
-              { key: 'email', label: 'Email' },
-              { key: 'role', label: 'Ruolo' },
-              { key: 'status', label: 'Stato' },
-              { key: 'actions', label: 'Azioni' }
-            ]}
-            data={employees.length
-              ? employees.map(e => ({ ...e, actions: <Link to={`/employees/edit/${e.id}`}>Modifica</Link> }))
-              : [{ id: 'empty', name: 'Nessun dato trovato', email: '', role: '', status: '', actions: '' }]
-            }
-          />
-
-          {/* PAGINAZIONE */}
-          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Precedente</button>
-            <span>Pagina {page} di {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Successiva</button>
-          </div>
-        </>
+        <Table
+          columns={[
+            { key: "id", label: "ID" },
+            { key: "name", label: "Nome" },
+            { key: "email", label: "Email" },
+            { key: "role", label: "Ruolo" },
+            { key: "status", label: "Stato" },
+            { key: "actions", label: "Azioni" }
+          ]}
+          data={
+            employees.length
+              ? employees.map((e) => ({
+                ...e,
+                actions: (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate(`/employees/edit/${e.id}`)}
+                  >
+                    Modifica
+                  </Button>
+                )
+              }))
+              : [
+                {
+                  id: "-",
+                  name: "Nessun dato trovato",
+                  email: "",
+                  role: "",
+                  status: "",
+                  actions: ""
+                }
+              ]
+          }
+        />
       )}
-    </div>
+    </PageLayout>
   );
 };
 

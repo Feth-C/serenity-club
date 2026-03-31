@@ -7,31 +7,63 @@ const formatResponse = require('../utils/responseFormatter');
 module.exports = {
 
   // -----------------------------
-  // Listar membros por unidade
+  // Listar membros por unidade (paginado)
   // -----------------------------
   async list(req, res) {
     const { status } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
     const { userRole, userId, activeUnitId } = req;
 
     if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
 
-    let members;
+    let result;
 
     if (userRole === 'admin') {
-      members = await Member.findAllByUnit(activeUnitId, status);
+      result = await Member.findAllByUnit(
+        activeUnitId,
+        status,
+        limit,
+        offset
+      );
 
     } else if (userRole === 'manager') {
-      members = await Member.findByManagerAndUnit(userId, activeUnitId, status);
+      result = await Member.findByManagerAndUnit(
+        userId,
+        activeUnitId,
+        status,
+        limit,
+        offset
+      );
 
     } else if (userRole === 'member') {
       const member = await Member.findByUserAndUnit(userId, activeUnitId);
-      members = member ? [member] : [];
+      const rows = member ? [member] : [];
+
+      return res.json({
+        data: rows,
+        page: 1,
+        totalPages: 1,
+        totalItems: rows.length
+      });
 
     } else {
       throw new AppError('Accesso negato.', 403);
     }
 
-    res.json(formatResponse(members));
+    const totalPages = Math.ceil(result.total / limit);
+
+    res.json({
+            success: true,
+            data: {
+                items: result.rows,
+                page,
+                totalPages,
+                totalItems: result.total
+            }
+        });
   },
 
   // -----------------------------

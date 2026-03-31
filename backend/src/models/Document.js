@@ -1,6 +1,7 @@
 // backend/src/models/Document.js
 
 const db = require('../database/db');
+const { getDocumentStatus } = require('../utils/documentEngine');
 
 module.exports = {
 
@@ -8,6 +9,7 @@ module.exports = {
   // Criar documento
   // -----------------------------
   create({
+    unit_id,
     name,
     type,
     expiration_date,
@@ -15,18 +17,42 @@ module.exports = {
     owner_id,
     file_path,
     notes = null,
-    status = 'valid' // status padrão
+    is_active = 1,
+    created_by = null
   }) {
     return new Promise((resolve, reject) => {
+
       const query = `
-        INSERT INTO documents
-        (name, type, expiration_date, owner_type, owner_id, file_path, notes, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+      INSERT INTO documents
+      (
+        unit_id,
+        name,
+        type,
+        expiration_date,
+        owner_type,
+        owner_id,
+        file_path,
+        notes,
+        is_active,
+        created_by
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
       db.run(
         query,
-        [name, type, expiration_date, owner_type, owner_id, file_path, notes, status],
+        [
+          unit_id,
+          name,
+          type,
+          expiration_date,
+          owner_type,
+          owner_id,
+          file_path,
+          notes,
+          is_active,
+          created_by
+        ],
         function (err) {
           if (err) return reject(err);
           resolve({ id: this.lastID });
@@ -36,43 +62,69 @@ module.exports = {
   },
 
   // -----------------------------
-  // Listar documentos (com filtros)
+  // Listar documentos (com filtros e paginação)
   // -----------------------------
-  findAll(filters = {}) {
+  findAllPaginated({ page = 1, perPage = 10, filters = {} }) {
     return new Promise((resolve, reject) => {
-      let query = `
-        SELECT *
-        FROM documents
-        WHERE 1=1
-      `;
+
+      let baseQuery = `SELECT * FROM documents WHERE 1=1`;
       const params = [];
 
-      // Filtros disponíveis
+      // -----------------------------
+      // Filtros base
+      // -----------------------------
+      if (filters.unit_id) {
+        baseQuery += ` AND unit_id = ?`;
+        params.push(filters.unit_id);
+      }
+
       if (filters.owner_type) {
-        query += ` AND owner_type = ?`;
+        baseQuery += ` AND owner_type = ?`;
         params.push(filters.owner_type);
       }
 
       if (filters.owner_id) {
-        query += ` AND owner_id = ?`;
+        baseQuery += ` AND owner_id = ?`;
         params.push(filters.owner_id);
       }
 
-      if (filters.type) {
-        query += ` AND type = ?`;
-        params.push(filters.type);
+      if (filters.is_active !== undefined) {
+        baseQuery += ` AND is_active = ?`;
+        params.push(filters.is_active);
       }
 
-      if (filters.status) {
-        query += ` AND status = ?`;
-        params.push(filters.status);
-      }
-
-      query += ` ORDER BY id DESC`;
-
-      db.all(query, params, (err, rows) => {
+      // -----------------------------
+      // Buscar todos os documentos para aplicar status virtual
+      // -----------------------------
+      db.all(baseQuery, params, (err, rows) => {
         if (err) return reject(err);
-        resolve(rows);
+
+        // Aplicar DocumentEngine (status virtual)
+        let items = rows.map(doc => ({
+          ...doc,
+          status: getDocumentStatus(doc.expiration_date)
+        }));
+
+        // Filtro por status (virtual)
+        if (filters.status) {
+          items = items.filter(doc => doc.status === filters.status);
+        }
+
+        // -----------------------------
+        // Paginação
+        // -----------------------------
+        const totalItems = items.length;
+        const totalPages = Math.ceil(totalItems / perPage);
+        const offset = (page - 1) * perPage;
+        const paginatedItems = items.slice(offset, offset + perPage);
+
+        resolve({
+          items: paginatedItems,
+          totalItems,
+          totalPages,
+          currentPage: page
+        });
+
       });
     });
   },
@@ -82,14 +134,26 @@ module.exports = {
   // -----------------------------
   findById(id) {
     return new Promise((resolve, reject) => {
+
       db.get(
         `SELECT * FROM documents WHERE id = ?`,
         [id],
         (err, row) => {
+
           if (err) return reject(err);
-          resolve(row);
+
+          if (!row) return resolve(null);
+
+          const document = {
+            ...row,
+            status: getDocumentStatus(row.expiration_date)
+          };
+
+          resolve(document);
+
         }
       );
+
     });
   },
 
@@ -106,7 +170,7 @@ module.exports = {
         'owner_id',
         'file_path',
         'notes',
-        'status'
+        'is_active'
       ];
 
       const entries = Object.entries(data).filter(

@@ -1,0 +1,39 @@
+/* frontend/src/Transactions/transactionsLayout.css */
+
+.transactions-grid {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-1);
+  align-items: start;
+}
+
+.transactions-filters-area {
+  position: sticky;
+  top: 20px;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+
+  box-shadow: var(--shadow-sm);
+}
+
+.transactions-table-area {
+  width: 100%;
+}
+
+/* RESPONSIVO */
+
+@media (max-width: 1000px) {
+
+  .transactions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transactions-filters-area {
+    position: relative;
+  }
+
+}

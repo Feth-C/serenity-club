@@ -11,35 +11,27 @@ const unitContext = require('../middlewares/unitContext');
 // Middleware global
 // -----------------------------
 router.use(auth);
-
-// -----------------------------
-// GET /documents
-// -----------------------------
-// router.get('/', DocumentsController.list);
+router.use(unitContext);
 
 // GET /documents
-router.get('/', unitContext, DocumentsController.getDocuments);
+router.get('/', DocumentsController.getDocuments);
 
 // GET /documents/:id
-router.get('/:id', unitContext, DocumentsController.getDocumentById);
+router.get('/:id', DocumentsController.getDocumentById);
 
 // POST /documents (com upload)
-router.post('/', unitContext, upload.single('file'),   // aqui indica que o campo do formData é 'file'
-    DocumentsController.createDocument
-);
-
-// POST /documents
-router.post('/', unitContext, DocumentsController.createDocument);
+router.post('/', upload.single('file'), DocumentsController.createDocument);
 
 // PUT /documents/:id (com upload)
-router.put('/:id', unitContext, upload.single('file'),
-    DocumentsController.updateDocument
-);
-
-// PUT /documents/:id
-router.put('/:id', unitContext, DocumentsController.updateDocument);
+router.put('/:id', upload.single('file'), DocumentsController.updateDocument);
 
 // DELETE /documents/:id
-router.delete('/:id', unitContext, DocumentsController.deleteDocument);
+router.delete('/:id', DocumentsController.deleteDocument);
+
+// PREVIEW /documents/:id
+router.get('/:id/preview', DocumentsController.previewDocument);
+
+// DOWNLOAD /documents/:id
+router.get('/:id/download', DocumentsController.downloadDocument);
 
 module.exports = router;

@@ -1,11 +1,20 @@
 // backend/src/routes/reportRoutes.js
 
 const express = require('express');
-const router = express.Router();
-const ReportController = require('../controllers/ReportController');
+const auth = require('../middlewares/auth');
 const unitContext = require('../middlewares/unitContext');
+const ReportController = require('../controllers/ReportController');
+const ReportExportController = require('../controllers/ReportExportController');
 
-// GET /api/reports/monthly?month=YYYY-MM&currency=XXX
-router.get('/monthly', unitContext, ReportController.generateMonthly);
+const router = express.Router();
+
+router.use(auth);
+router.use(unitContext);
+
+// Apenas dados JSON
+router.get('/:reportType', ReportController.fetchData);
+
+// Exportar PDF/CSV
+router.get('/:reportType/export', ReportExportController.export);
 
 module.exports = router;

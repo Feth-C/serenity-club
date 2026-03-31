@@ -1,0 +1,51 @@
+/* frontend/src/pages/Dashboard/AdminDashboard.css */
+
+/* KPI GRID */
+
+.dashboard-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  text-align: center;
+}
+
+/* KPI VALUE */
+
+.kpi-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* TABLES */
+
+.dashboard-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ERROR */
+
+.dashboard-error {
+  color: var(--color-danger);
+}
+
+.dashboard-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* RESPONSIVO DESKTOP */
+@media (max-width: 1200px) {
+  .split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .list-item {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

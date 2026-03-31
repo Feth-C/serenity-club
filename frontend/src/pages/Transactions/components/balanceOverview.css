@@ -1,0 +1,113 @@
+/* frontend/src/pages/transactions/components/BalanceOverview.css */
+
+/* GRID PRINCIPAL DE CARDS */
+.balance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-4);
+}
+
+
+/* CARD DE BALANCE POR MOEDA */
+.balance-card {
+    background: var(--color-bg-main);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-light);
+    padding: var(--space-3);
+    box-shadow: var(--shadow-sm);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.balance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+
+/* HEADER DO CARD (MOEDA + SÍMBOLO) */
+.balance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+
+    border-bottom: 1px solid var(--color-border-light);
+    padding-bottom: var(--space-1);
+}
+
+/* símbolo da moeda */
+.currency-symbol {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+
+    color: var(--color-primary);
+    opacity: 0.9;
+}
+
+
+/* LINHAS DE KPI (Entrate, Uscite, Saldo) */
+.balance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    font-size: var(--font-size-sm);
+}
+
+/* valores */
+.balance-income {
+    color: var(--color-success);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-md);
+}
+
+.balance-expense {
+    color: var(--color-danger);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-md);
+}
+
+
+/* SALDO FINAL */
+.balance-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    border-top: 1px solid var(--color-border-light);
+    padding-top: var(--space-2);
+
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
+}
+
+
+/* CONTAINER PARA GRÁFICO DONUT */
+.donut-container {
+    position: relative;
+    width: 100%;
+    max-height: 100%;
+    margin-top: var(--space-2);
+    padding: var(--space-2);
+}
+
+
+/* RESPONSIVO */
+@media (max-width: 1200px) {
+    .balance-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+}
+
+@media (max-width: 800px) {
+    .balance-grid {
+        grid-template-columns: 1fr;
+    }
+}

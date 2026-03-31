@@ -71,16 +71,27 @@ module.exports = {
         const { userId, userRole, activeUnitId } = req;
         if (!activeUnitId) throw new AppError('Unità attiva non definita.', 400);
 
-        const { status } = req.query;
+        const { status, page = 1, perPage = 10 } = req.query;
+        const offset = (page - 1) * perPage;
         const filters = {};
 
         if (userRole === 'manager') filters.manager_id = userId;
 
         if (status) filters.status = status;
 
-        const employees = await Employee.findAll(filters, activeUnitId);
+        const result = await Employee.findAllPaginated(filters, activeUnitId, perPage, offset);
 
-        res.json(formatResponse(employees));
+        const totalPages = Math.ceil(result.total / perPage);
+
+        res.json({
+            success: true,
+            data: {
+                items: result.rows,
+                page: Number(page),
+                totalPages,
+                totalItems: result.total
+            }
+        });
     },
 
     // -----------------------------
