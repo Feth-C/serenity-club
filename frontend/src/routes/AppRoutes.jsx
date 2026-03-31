@@ -20,16 +20,10 @@ import DocumentForm from '../pages/Documents/DocumentForm';
 import MemberHome from '../pages/Members/MemberHome';
 import TransactionsList from '../pages/Transactions/TransactionsList';
 import TransactionForm from '../pages/Transactions/TransactionForm';
-<<<<<<< HEAD
-import FinanceDashboard from '../pages/Dashboard/FinanceDashboard';
-import ClientsList from '../pages/Clients/ClientsList';
-import ClientForm from '../pages/Clients/ClientForm';
-=======
 import ReportsHub from '../pages/Reports/ReportsHub';
 import SessionForm from '../pages/Sessions/SessionForm';
 import SessionsList from '../pages/Sessions/SessionsList';
 import SessionCloseForm from '../pages/Sessions/SessionCloseForm';
->>>>>>> serenity-pre-v1
 
 const AppRoutes = () => {
   const { user, loading } = useContext(AuthContext);
@@ -82,18 +76,15 @@ const AppRoutes = () => {
       <Route path="/sessions/edit/:id" element={user ? <SessionForm mode="edit" /> : <Navigate to="/login" />} />
       <Route path="/sessions/close/:id" element={user ? <SessionCloseForm mode="close" /> : <Navigate to="/login" />} />
 
-<<<<<<< HEAD
       {/* Clients */}
       <Route path="/clients" element={user ? <ClientsList /> : <Navigate to="/login" />} />
       <Route path="/clients/new" element={user ? <ClientForm /> : <Navigate to="/login" />} />
       <Route path="/clients/:id" element={user ? <ClientForm /> : <Navigate to="/login" />} />
-=======
       {/* Reports */}
       <Route
         path="/reports"
         element={user && ['admin', 'manager'].includes(user.role) ? <ReportsHub /> : <Navigate to="/login" />}
       />
->>>>>>> serenity-pre-v1
 
     </Routes>
   );
