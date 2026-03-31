@@ -15,13 +15,23 @@ oauth2Client.setCredentials({
 
 const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
+const TIMEZONE = 'Europe/Zurich';
+
+
 // ---------------------------------------------------
-// Helper para descrição
+// Helpers
 // ---------------------------------------------------
+
+function calculateEnd(session) {
+  const start = new Date(session.start_time);
+  return new Date(start.getTime() + session.planned_minutes * 60000);
+}
+
 function buildDescription(session, extra = '') {
+
   let desc = `Cliente: ${session.client_name}
 Início: ${new Date(session.start_time).toLocaleString()}
-Fim previsto: ${new Date(new Date(session.start_time).getTime() + session.planned_minutes*60000).toLocaleString()}
+Fim previsto: ${calculateEnd(session).toLocaleString()}
 ID sessão: ${session.id}`;
 
   if (session.notes) desc += `\nNota: ${session.notes}`;
@@ -30,20 +40,35 @@ ID sessão: ${session.id}`;
   return desc;
 }
 
+function buildEvent(session, extra = '') {
+
+  const start = new Date(session.start_time);
+  const end = calculateEnd(session);
+
+  return {
+    summary: `${session.member_name || ''} • Sessione — ${session.client_name}`,
+    description: buildDescription(session, extra),
+    start: {
+      dateTime: start.toISOString(),
+      timeZone: TIMEZONE
+    },
+    end: {
+      dateTime: end.toISOString(),
+      timeZone: TIMEZONE
+    }
+  };
+}
+
+
 // ---------------------------------------------------
 // CREATE
 // ---------------------------------------------------
-module.exports = {
-  async createSessionEvent(session) {
-    const start = new Date(session.start_time);
-    const end = new Date(start.getTime() + session.planned_minutes * 60000);
 
-    const event = {
-      summary: `Sessão — ${session.client_name}`,
-      description: buildDescription(session),
-      start: { dateTime: start.toISOString(), timeZone: 'Europe/Zurich' },
-      end: { dateTime: end.toISOString(), timeZone: 'Europe/Zurich' }
-    };
+async function createSessionEvent(session) {
+
+  try {
+
+    const event = buildEvent(session);
 
     const res = await calendar.events.insert({
       calendarId: 'primary',
@@ -51,52 +76,80 @@ module.exports = {
     });
 
     await Session.updateGoogleEventId(session.id, res.data.id);
+
     return res.data.id;
-  },
 
-  // ---------------------------------------------------
-  // UPDATE
-  // ---------------------------------------------------
-  async updateSessionEvent(session) {
-    if (!session.google_event_id) return;
+  } catch (error) {
 
-    const start = new Date(session.start_time);
-    const end = new Date(start.getTime() + session.planned_minutes * 60000);
+    console.error("Erro Google Calendar (create):", error?.response?.data || error.message);
 
-    const event = {
-      summary: `Sessão — ${session.client_name}`,
-      description: buildDescription(session),
-      start: { dateTime: start.toISOString(), timeZone: 'Europe/Zurich' },
-      end: { dateTime: end.toISOString(), timeZone: 'Europe/Zurich' }
-    };
-
-    await calendar.events.update({
-      calendarId: 'primary',
-      eventId: session.google_event_id,
-      resource: event
-    });
-  },
-
-  // ---------------------------------------------------
-  // CANCEL
-  // ---------------------------------------------------
-  async cancelSessionEvent(session, userId) {
-    if (!session.google_event_id) return;
-
-    const start = new Date(session.start_time);
-    const end = new Date(start.getTime() + session.planned_minutes * 60000);
-
-    const event = {
-      summary: `❌ ANNULLATA — Sessione — ${session.client_name}`,
-      description: buildDescription(session, `Cancelado pelo usuário ID: ${userId}`),
-      start: { dateTime: start.toISOString(), timeZone: 'Europe/Zurich' },
-      end: { dateTime: end.toISOString(), timeZone: 'Europe/Zurich' }
-    };
-
-    await calendar.events.update({
-      calendarId: 'primary',
-      eventId: session.google_event_id,
-      resource: event
-    });
   }
+}
+
+
+// ---------------------------------------------------
+// UPDATE
+// ---------------------------------------------------
+
+async function updateSessionEvent(session) {
+
+  if (!session.google_event_id) return;
+
+  try {
+
+    const event = buildEvent(session);
+
+    await calendar.events.update({
+      calendarId: 'primary',
+      eventId: session.google_event_id,
+      resource: event
+    });
+
+  } catch (error) {
+
+    const code = error?.response?.status;
+
+    // se evento foi apagado manualmente no Google
+    if (code === 404) {
+
+      console.warn("Evento Google não encontrado, recriando...");
+
+      return createSessionEvent(session);
+    }
+
+    console.error("Erro Google Calendar (update):", error?.response?.data || error.message);
+
+  }
+}
+
+
+// ---------------------------------------------------
+// DELETE (melhor que cancelar)
+// ---------------------------------------------------
+
+async function deleteSessionEvent(session) {
+
+  if (!session.google_event_id) return;
+
+  try {
+
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: session.google_event_id
+    });
+
+  } catch (error) {
+
+    if (error?.response?.status !== 404) {
+      console.error("Erro Google Calendar (delete):", error?.response?.data || error.message);
+    }
+
+  }
+}
+
+
+module.exports = {
+  createSessionEvent,
+  updateSessionEvent,
+  deleteSessionEvent
 };

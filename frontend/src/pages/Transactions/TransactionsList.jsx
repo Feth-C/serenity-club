@@ -1,24 +1,19 @@
-// frontend/src/pages/Transactions/TransactionsList.jsx
+// frontend/src/pages/transactions/TransactionsList.jsx
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import useFetchList from '../../hooks/useFetchList';
-import BackButton from '../../components/common/BackButton';
+import { useNavigate } from "react-router-dom";
+import useFetchList from "../../hooks/useFetchList";
 
-import BalanceOverview from '../../components/transactions/BalanceOverview';
-import TransactionFilters from '../../components/transactions/TransactionFilters';
-import TransactionTable from '../../components/transactions/TransactionTable';
-import TransactionsDonut from '../../components/transactions/TransactionsDonut';
+import PageLayout from "../../components/layout/PageLayout/PageLayout";
+import Button from "../../components/ui/Button/Button";
+import Pagination from "../../components/ui/Pagination/Pagination";
+import Card from "../../components/ui/Card/Card";
+
+import BalanceOverview from "./components/BalanceOverview";
+import TransactionFilters from "./components/TransactionFilters";
+import TransactionTable from "./components/TransactionTable";
 
 const TransactionsList = () => {
-    const [currency, setCurrency] = useState('EUR');
-    const [filters, setFilters] = useState({
-        type: '',
-        category: '',
-        start_date: '',
-        end_date: '',
-        payer_name: ''
-    });
+    const navigate = useNavigate();
 
     const {
         items: transactions,
@@ -26,74 +21,83 @@ const TransactionsList = () => {
         error,
         page,
         totalPages,
+        totalItems,
+        filters,
         setPage,
-        refetch
-    } = useFetchList('/transactions');
-
-    // Aplicando filtros localmente
-    const filteredTransactions = transactions.filter(t => {
-        const matchesCurrency = !currency || t.currency === currency;
-        const matchesType = !filters.type || t.type === filters.type;
-        const matchesCategory = !filters.category || t.category === filters.category;
-
-        // Filtra qualquer pagador (member, client ou ad-hoc)
-        const matchesPayer = !filters.payer_name ||
-            (t.payer_name && t.payer_name.toLowerCase().includes(filters.payer_name.toLowerCase()));
-
-        const matchesStart = !filters.start_date || new Date(t.date) >= new Date(filters.start_date);
-        const matchesEnd = !filters.end_date || new Date(t.date) <= new Date(filters.end_date);
-
-        return matchesCurrency && matchesType && matchesCategory && matchesPayer && matchesStart && matchesEnd;
+        setFilters
+    } = useFetchList("/transactions", {
+        initialPage: 1,
+        perPage: 10,
+        initialFilters: {
+            type: "",
+            category: "",
+            start_date: "",
+            end_date: "",
+            payer_name: "",
+            member_id: "",
+            currency: ""
+        }
     });
 
+    // Lista de moedas únicas das transações atuais
+    const currencies = [...new Set(transactions.map(t => t.currency).filter(Boolean))];
+
     return (
-        <div style={{ padding: '20px' }}>
-            {/* BOTÃO VOLTAR */}
-            <BackButton />
+        <PageLayout
+            title="💳 Transazioni"
+            subtitle="Gestione completa delle entrate e delle spese"
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1>Transazioni</h1>
-                <Link to="/transactions/new" >+ Nuova transazione</Link>
-            </div>
+            backButton={
+                <Button variant="secondary" onClick={() => navigate(-1)}>
+                    ← Indietro
+                </Button>
+            }
 
+            actions={
+                <Button variant="primary" onClick={() => navigate("/transactions/new")}>
+                    + Nuova transazione
+                </Button>
+            }
+
+            pagination={
+                !loading && !error && (
+                    <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        onPrev={() => setPage(page - 1)}
+                        onNext={() => setPage(page + 1)}
+                    />
+                )
+            }
+        >
             {/* BALANCE OVERVIEW */}
-            <BalanceOverview transactions={filteredTransactions} />
-
-            {/* RESUMO GRÁFICO */}
-            <TransactionsDonut
-                transactions={filteredTransactions}
-                currency={currency}
-            />
-
-            {/* SELETOR DE MOEDAS */}
-            <select value={currency} onChange={e => setCurrency(e.target.value)}>
-                <option value="">Tutte le Valute</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="CHF">CHF (CHF)</option>
-            </select>
-
-            {/* FILTROS */}
-            <TransactionFilters
-                filters={filters}
-                setFilters={setFilters}
+            <BalanceOverview
                 transactions={transactions}
+                currencies={currencies}
             />
 
-            {/* TABELA */}
-            <TransactionTable
-                transactions={filteredTransactions}
-                loading={loading}
-            />
+            {/* FILTRI */}
+            <Card title="🔎 Filtri">
+                <TransactionFilters
+                    filters={filters}
+                    setFilters={setFilters}
+                    transactions={transactions}
+                />
+            </Card>
 
-            {/* PAGINAÇÃO */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', gap: '20px' }}>
-                <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Precedente</button>
-                <span>Pagina {page} di {totalPages}</span>
-                <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Successiva</button>
-            </div>
+            {/* LISTA DE TRANSAÇÕES */}
+            <Card>
+                <TransactionTable
+                    transactions={transactions}
+                    loading={loading}
+                />
+                {error && (
+                    <p className="text-error">{error}</p>
+                )}
+            </Card>
 
-            {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
-        </div>
+        </PageLayout>
     );
 };
 

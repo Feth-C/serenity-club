@@ -1,0 +1,253 @@
+/* frontend/src/components/ui/form/form.css */
+
+/* ============================= */
+/* FORM BASE                     */
+/* ============================= */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: 100%;
+}
+
+.form-row {
+    display: flex;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.form-row>*:first-child {
+    flex: 1;
+}
+
+/* ============================= */
+/* FORM GROUP                     */
+/* ============================= */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+}
+
+.form-group--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+/* ============================= */
+/* LABEL                          */
+/* ============================= */
+
+.form-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+}
+
+/* ============================= */
+/* INPUT / SELECT / TEXTAREA      */
+/* ============================= */
+
+.form-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.form-inline .form-input {
+    flex: 1;
+}
+
+.form-select,
+.form-textarea {
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-md);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(134, 126, 97, 0.15);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+/* ============================= */
+/* SMALL HELP TEXT / ERROR       */
+/* ============================= */
+
+.form-text {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.form-text--error {
+    color: var(--color-danger);
+}
+
+/* ============================= */
+/* INLINE BUTTONS / ACTIONS     */
+/* ============================= */
+
+.form-actions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin-top: var(--space-4);
+}
+
+/* ============================= */
+/* MONEY INPUT (currency + value)*/
+/* ============================= */
+.form-money {
+    display: flex;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+.form-money .form-select {
+    width: 150px;
+    flex-shrink: 0;
+}
+
+.form-money .form-input {
+    flex: 1;
+    text-align: right;
+    padding-right: 1rem;
+}
+
+.checkbox-field {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-field input {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================= */
+/* PARTIAL PAYMENT UI            */
+/* ============================= */
+
+.percentage-buttons {
+
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+
+}
+
+.payment-remaining {
+
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-2);
+
+}
+
+/* saldo pendente */
+
+.payment-remaining--pending {
+
+    color: var(--color-warning);
+
+}
+
+/* saldo zerado */
+
+.payment-remaining--paid {
+
+    color: var(--color-success);
+
+}
+
+/* ============================= */
+/* MONEY INLINE (valor + moeda)  */
+/* ============================= */
+
+.money-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.currency-label {
+    font-size: var(--font-size-md);
+    color: var(--color-text-secondary);
+}
+
+/* ============================= */
+/* SESSION CLOSE PARTIAL GRID    */
+/* ============================= */
+
+.session-close-partial {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+
+/* ============================= */
+/* SESSION CLOSE MAIN GRID       */
+/* ============================= */
+
+.session-close-main {
+    display: grid;
+    grid-template-columns: 130px 1fr 130px;
+    gap: var(--space-3);
+    width: 100%;
+}
+
+/* ============================= */
+/* DURATION BUTTONS              */
+/* ============================= */
+
+.duration-quick-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+
+.session-summary {
+    background-color: var(--color-bg-muted);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-light);
+    padding: var(--space-3);
+    font-size: 14px;
+}
+
+.session-summary p {
+    margin: 4px 0;
+}
+
+@media (max-width:700px) {
+
+    .session-close-main {
+        grid-template-columns: 1fr;
+    }
+
+    .session-close-partial {
+        grid-template-columns: 1fr;
+    }
+
+}

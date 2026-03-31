@@ -20,6 +20,7 @@ module.exports = {
       throw new AppError('Accesso negato.', 403);
 
     let {
+      member_id,
       visit_type,
       client_id,
       client_name,
@@ -68,6 +69,7 @@ module.exports = {
       } else {
         const client = await Client.create({
           unitId: activeUnitId,
+          memberId: member_id,
           name: client_name,
           contact,
           email,
@@ -101,6 +103,7 @@ module.exports = {
     // ------------------------------
     const session = await Session.create({
       unitId: activeUnitId,
+      memberId: member_id,
       clientId: finalClientId,
       clientName: finalClientName,
       contact,
@@ -188,6 +191,7 @@ module.exports = {
     const id = Number(req.params.id);
 
     const {
+      member_id,
       client_name,
       contact,
       visit_type,
@@ -211,6 +215,13 @@ module.exports = {
     if (session.status !== 'open')
       throw new AppError('Sessione già chiusa.', 400);
 
+    if (member_id) {
+      const member = await Member.findById(member_id);
+
+      if (!member)
+        throw new AppError('Membro non trovato.', 404);
+    }
+
     const updatedStart = start_time
       ? new Date(start_time).toISOString()
       : session.start_time;
@@ -221,6 +232,7 @@ module.exports = {
         : session.planned_minutes;
 
     await Session.updateOpenSession(id, activeUnitId, {
+      member_id: member_id ?? session.member_id,
       client_name,
       contact,
       visit_type,
@@ -238,7 +250,7 @@ module.exports = {
     // ------------------------------
     try {
       await GoogleCalendarService.updateSessionEvent(updated);
-      console.log('Google Event atualizado');
+      console.log(`Google Event created for session ${session.id}:`, eventId);
     } catch (err) {
       console.error('Erro ao atualizar Google Calendar:', err);
     }
@@ -314,13 +326,10 @@ module.exports = {
     // 🔹 Atualizar evento no Google como CANCELADO
     // ------------------------------
     try {
-      await GoogleCalendarService.cancelSessionEvent(
-        updated,
-        userId
-      );
-      console.log('Evento Google marcado como cancelado');
+      await GoogleCalendarService.cancelSessionEvent(updated, userId);
+      console.log('Sessione annulata di Google Calendar');
     } catch (err) {
-      console.error('Erro Google Calendar (cancel):', err);
+      console.error('Erro Google Calendar (delete):', err);
     }
 
     res.json(

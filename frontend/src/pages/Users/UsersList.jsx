@@ -1,80 +1,116 @@
 // frontend/src/pages/Users/UsersList.jsx
 
-import { Link } from 'react-router-dom';
-import useFetchList from '../../hooks/useFetchList';
-import BackButton from '../../components/common/BackButton';
-import Table from '../../components/common/Table';
+import { useNavigate } from "react-router-dom";
+import useFetchList from "../../hooks/useFetchList";
+import Table from "../../components/ui/Table/Table";
+import PageLayout from "../../components/layout/PageLayout/PageLayout";
+import Button from "../../components/ui/Button/Button";
+import Pagination from "../../components/ui/Pagination/Pagination";
 
 const UsersList = () => {
+  const navigate = useNavigate();
+
   const {
     items: users,
     loading,
     error,
     page,
     totalPages,
-    statusFilter,
+    totalItems,
+    filters,
     setPage,
-    setStatusFilter
-  } = useFetchList('/users');
+    setFilters
+  } = useFetchList("/users");
 
+  // Configuração de colunas para o Table global
+  const columns = [
+    { key: "id", label: "ID" },
+    { key: "name", label: "Nome" },
+    { key: "email", label: "Email" },
+    { key: "role", label: "Ruolo" },
+    { key: "status", label: "Stato" },
+    { key: "actions", label: "Azioni" }
+  ];
+
+  // Adiciona a coluna de ações de forma padronizada
+  const data = users.length
+    ? users.map((u) => ({
+      ...u,
+      actions: (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => navigate(`/users/edit/${u.id}`)}
+        >
+          Modifica
+        </Button>
+      )
+    }))
+    : [
+      {
+        id: "-",
+        name: "Nessun dato trovato",
+        email: "",
+        role: "",
+        status: "",
+        actions: ""
+      }
+    ];
 
   return (
-    <div style={{ padding: '20px' }}>
-      {/* BOTÃO VOLTAR */}
-      <BackButton />
-      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Utenti</h1>
-
-      {/* FILTRO + BOTÃO NOVO USUARIO */}
-      <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">Tutti</option>
-            <option value="active">Attivo</option>
-            <option value="inactive">Inattivo</option>
-          </select>
-        </div>
-
-        <div>
-          <Link to="/users/new">
-            + Nuovo Utente
-          </Link>
-        </div>
-      </div>
-
+    <PageLayout
+      title="👤 Utenti"
+      subtitle="Gestione dei utenti"
+      backButton={
+        <Button
+          variant="secondary"
+          size="md"
+          onClick={() => navigate(-1)}
+        >
+          ← Indietro
+        </Button>
+      }
+      actions={
+        <Button
+          variant="primary"
+          size="md"
+          onClick={() => navigate("/users/new")}
+        >
+          + Nuovo Utente
+        </Button>
+      }
+      filters={
+        <select
+          className="form-select"
+          value={filters.status || ""}
+          onChange={(e) => {
+            setFilters({ status: e.target.value });
+          }}
+        >
+          <option value="">Tutti</option>
+          <option value="active">Attivo</option>
+          <option value="inactive">Inattivo</option>
+        </select>
+      }
+      pagination={
+        !loading && !error && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPrev={() => setPage(page - 1)}
+            onNext={() => setPage(page + 1)}
+          />
+        )
+      }
+    >
       {loading && <p>Caricamento...</p>}
-      {!loading && error && <p style={{ color: 'red' }}>{error}</p>}
+      {!loading && error && <p className="text-error">{error}</p>}
 
       {!loading && !error && (
-        <>
-          <Table
-            columns={[
-              { key: 'name', label: 'Nome' },
-              { key: 'email', label: 'Email' },
-              { key: 'role', label: 'Ruolo' },
-              { key: 'status', label: 'Stato' },
-              { key: 'actions', label: 'Azioni' }
-            ]}
-            data={users.length
-              ? users.map(u => ({ ...u, actions: <Link to={`/users/edit/${u.id}`}>Modifica</Link> }))
-              : [{ id: 'empty', name: 'Nessun dato trovato', email: '', role: '', status: '', actions: '' }]
-            }
-          />
-
-          {/* PAGINAZIONE */}
-          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Precedente</button>
-            <span>Pagina {page} di {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Successiva</button>
-          </div>
-        </>
+        <Table columns={columns} data={data} />
       )}
-    </div>
+    </PageLayout>
   );
 };
 

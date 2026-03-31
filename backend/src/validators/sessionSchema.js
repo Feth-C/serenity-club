@@ -7,6 +7,7 @@ const { z } = require('zod');
 // -----------------------------
 const sessionCreateSchema = z.object({
   body: z.object({
+    member_id: z.number().nullable().optional(),
     client_name: z.string().min(1).optional().nullable(),
     contact: z.string().optional(),
     visit_type: z.enum(['first', 'return']).optional().default('first'),
@@ -17,7 +18,7 @@ const sessionCreateSchema = z.object({
       .positive('Durata prevista deve essere maggiore di 0'),
     planned_amount: z.number().optional(),
     currency: z.string().optional().default('EUR'),
-    notes: z.string().optional(),
+    notes: z.string().nullable().optional(),
   }),
 });
 
@@ -26,6 +27,7 @@ const sessionCreateSchema = z.object({
 // -----------------------------
 const sessionUpdateSchema = z.object({
   body: z.object({
+    member_id: z.number().nullable().optional(),
     client_name: z.string().min(1).optional().nullable(),
     contact: z.string().optional(),
     visit_type: z.enum(['first', 'return']).optional(),
@@ -37,7 +39,7 @@ const sessionUpdateSchema = z.object({
       .optional(),
     planned_amount: z.number().optional(),
     currency: z.string().optional(),
-    notes: z.string().optional()
+    notes: z.string().nullable().optional()
   }),
 });
 
@@ -48,10 +50,10 @@ const sessionCloseSchema = z.object({
   body: z.object({
     payer_type: z.enum(['client', 'member', 'ad-hoc']),
     payer_name: z.string().min(2),
-    final_amount: z.number().optional(),
     paid_amount: z.number().optional(),
-    payment_method: z.enum(['cash', 'card', 'twin', 'transfer']).optional(),
-    notes: z.string().optional()
+    payment_method: z.enum(['cash', 'card', 'twint', 'transfer']).optional(),
+    final_amount: z.number().optional(),
+    notes: z.string().nullable().optional()
   }),
 });
 

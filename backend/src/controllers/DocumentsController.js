@@ -9,26 +9,27 @@ const getDocuments = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.perPage) || 10;
-    const status = req.query.status;
 
-    // Busca todos os documentos, aplicando filtro de status
-    let filters = {};
-    if (status) filters.status = status;
+    const filters = {
+      unit_id: req.query.unit_id,
+      owner_type: req.query.owner_type,
+      owner_id: req.query.owner_id,
+      is_active: req.query.is_active,
+      status: req.query.status // 🔹 agora podemos filtrar status diretamente
+    };
 
-    const allDocuments = await Document.findAll(filters);
-
-    // Paginação manual
-    const totalItems = allDocuments.length;
-    const totalPages = Math.ceil(totalItems / perPage);
-    const offset = (page - 1) * perPage;
-    const items = allDocuments.slice(offset, offset + perPage);
+    const result = await Document.findAllPaginated({ page, perPage, filters });
 
     res.json({
-      items,
-      totalItems,
-      totalPages,
-      currentPage: page
+      success: true,
+      data: {
+        items: result.items,
+        page: result.currentPage,
+        totalPages: result.totalPages,
+        totalItems: result.totalItems
+      }
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro inesperado' });
@@ -43,6 +44,10 @@ const getDocumentById = async (req, res) => {
     const id = req.params.id;
     const document = await Document.findById(id);
 
+    if (document.unit_id !== req.user.unit_id) {
+      return res.status(403).json({ message: 'Accesso negato' });
+    }
+
     if (!document) return res.status(404).json({ message: 'Documento não encontrado' });
     res.json(document);
   } catch (err) {
@@ -56,22 +61,43 @@ const getDocumentById = async (req, res) => {
 // -----------------------------
 const createDocument = async (req, res) => {
   try {
-    const { name, type, expiration_date, owner_type, owner_id, notes } = req.body;
 
-    if (!name || !type || !owner_type || !owner_id || !req.file) {
-      return res.status(400).json({ message: 'Todos os campos obrigatórios devem ser preenchidos' });
-    }
-
-    const file_path = req.file.path; // caminho absoluto do arquivo
-
-    const result = await Document.create({
+    const {
+      unit_id,
       name,
       type,
       expiration_date,
       owner_type,
       owner_id,
-      file_path,
       notes
+    } = req.body;
+
+    const created_by = req.user?.id || null;
+
+    if (!name || !type || !owner_type || !owner_id || !req.file) {
+      return res.status(400).json({
+        message: 'Campos obrigatórios não preenchidos'
+      });
+    }
+
+    const file_path = req.file.path;
+    const file_name = req.file.filename;
+    const mime_type = req.file.mimetype;
+    const file_size = req.file.size;
+
+    const result = await Document.create({
+      unit_id,
+      name,
+      type,
+      expiration_date,
+      owner_type,
+      owner_id,
+      notes,
+      file_path,
+      file_name,
+      mime_type,
+      file_size,
+      created_by
     });
 
     res.status(201).json({
@@ -81,9 +107,11 @@ const createDocument = async (req, res) => {
       expiration_date,
       owner_type,
       owner_id,
-      notes,
-      file_path
+      file_name,
+      mime_type,
+      file_size
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao criar documento' });
@@ -96,20 +124,25 @@ const createDocument = async (req, res) => {
 const updateDocument = async (req, res) => {
   try {
     const id = req.params.id;
-    const { name, type, expiration_date, status, owner_type, owner_id, notes } = req.body;
+    const { unit_id, name, type, expiration_date, owner_type, owner_id, notes, is_active, created_by } = req.body;
 
     const data = {
+      unit_id,
       name,
       type,
       expiration_date,
-      status,
       owner_type,
       owner_id,
-      notes
+      notes,
+      is_active,
+      created_by
     };
 
     if (req.file) {
       data.file_path = req.file.path;
+      data.file_name = req.file.filename;
+      data.mime_type = req.file.mimetype;
+      data.file_size = req.file.size;
     }
 
     const changes = await Document.update(id, data);
@@ -131,6 +164,10 @@ const deleteDocument = async (req, res) => {
     const id = req.params.id;
     const changes = await Document.delete(id);
 
+    if (document.unit_id !== req.user.unit_id) {
+      return res.status(403).json({ message: 'Accesso negato' });
+    }
+
     if (changes === 0) return res.status(404).json({ message: 'Documento não encontrado' });
 
     res.json({ message: 'Documento excluído com sucesso' });
@@ -140,10 +177,62 @@ const deleteDocument = async (req, res) => {
   }
 };
 
+// -----------------------------
+// PREVIEW /documents/:id
+// -----------------------------
+const previewDocument = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const document = await Document.findById(id);
+    const path = require('path');
+
+    if (document.unit_id !== req.user.unit_id) {
+      return res.status(403).json({ message: 'Accesso negato' });
+    }
+
+    if (!document) {
+      return res.status(404).json({ message: 'Documento não encontrado' });
+    }
+
+    res.setHeader('Content-Type', document.mime_type);
+    res.sendFile(path.resolve(document.file_path));
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao visualizar documento' });
+  }
+};
+
+// -----------------------------
+// DOWNLOAD /documents/:id
+// -----------------------------
+const downloadDocument = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const document = await Document.findById(id);
+
+    if (document.unit_id !== req.user.unit_id) {
+      return res.status(403).json({ message: 'Accesso negato' });
+    }
+
+    if (!document) {
+      return res.status(404).json({ message: 'Documento não encontrado' });
+    }
+
+    res.download(document.file_path, document.file_name);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao baixar documento' });
+  }
+};
+
 module.exports = {
   getDocuments,
   getDocumentById,
   createDocument,
   updateDocument,
-  deleteDocument
+  deleteDocument,
+  previewDocument,
+  downloadDocument
 };

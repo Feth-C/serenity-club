@@ -101,6 +101,7 @@ db.run(`
     email TEXT,
     address TEXT,
     notes TEXT,
+    status TEXT DEFAULT 'active',
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(unit_id) REFERENCES units(id),
@@ -115,15 +116,22 @@ db.run(`
 db.run(`
   CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_type TEXT NOT NULL,
+    unit_id INTEGER NOT NULL,
+    owner_type TEXT NOT NULL CHECK(owner_type IN ('manager','member','employee','unit')),
     owner_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
     expiration_date DATE,
     notes TEXT,
-    status TEXT DEFAULT 'active',
+    is_active INTEGER DEFAULT 1,
     file_path TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    file_name TEXT NOT NULL,
+	  mime_type	TEXT NOT NULL,
+	  file_size	INTEGER,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(unit_id) REFERENCES units(id),
+    FOREIGN KEY(created_by) REFERENCES users(id)
   )
 `);
 
@@ -134,8 +142,11 @@ db.run(`
   CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     unit_id INTEGER NOT NULL,
+    member_id INTEGER,
+    client_id INTEGER,
     client_name TEXT,
     contact TEXT,
+    address TEXT,
     visit_type TEXT NOT NULL CHECK (visit_type IN ('first','return')),
     start_time DATETIME NOT NULL,
     planned_minutes INTEGER NOT NULL,
@@ -151,8 +162,10 @@ db.run(`
     google_event_id TEXT,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(unit_id) REFERENCES units(id),
-    FOREIGN KEY(created_by) REFERENCES users(id)
+    FOREIGN KEY("client_id") REFERENCES "clients"("id"),
+	  FOREIGN KEY("created_by") REFERENCES "users"("id"),
+	  FOREIGN KEY("member_id") REFERENCES "members"("id"),
+	  FOREIGN KEY("unit_id") REFERENCES "units"("id")
   )
 `);
 

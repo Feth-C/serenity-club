@@ -4,47 +4,94 @@ const db = require('../database/db');
 
 module.exports = {
   // -----------------------------
-  // ADMIN → lista todos da unidade
+  // ADMIN → lista todos da unidade (paginado)
   // -----------------------------
-  findAllByUnit(unitId, status = null) {
+  findAllByUnit(unitId, status = null, limit = 10, offset = 0) {
     return new Promise((resolve, reject) => {
-      const query = `
-        SELECT
-          id, manager_id, user_id, name, email, phone,
-          passport_number, passport_expiration,
-          police_clearance_expiration, notes, status, unit_id
-        FROM members
-        WHERE unit_id = ?
-        AND (? IS NULL OR status = ?)
-        ORDER BY id DESC
-      `;
-      db.all(query, [unitId, status, status], (err, rows) => {
+      const dataQuery = `
+      SELECT
+        id, manager_id, user_id, name, email, phone,
+        passport_number, passport_expiration,
+        police_clearance_expiration, notes, status, unit_id
+      FROM members
+      WHERE unit_id = ?
+      AND (? IS NULL OR status = ?)
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?
+    `;
+
+      const countQuery = `
+      SELECT COUNT(*) as total
+      FROM members
+      WHERE unit_id = ?
+      AND (? IS NULL OR status = ?)
+    `;
+
+      db.get(countQuery, [unitId, status, status], (err, countRow) => {
         if (err) return reject(err);
-        resolve(rows || []);
+
+        db.all(
+          dataQuery,
+          [unitId, status, status, limit, offset],
+          (err, rows) => {
+            if (err) return reject(err);
+
+            resolve({
+              rows: rows || [],
+              total: countRow.total
+            });
+          }
+        );
       });
     });
   },
 
   // -----------------------------
-  // MANAGER → apenas os próprios da unidade
+  // MANAGER → apenas próprios (paginado)
   // -----------------------------
-  findByManagerAndUnit(manager_id, unitId, status = null) {
+  findByManagerAndUnit(managerId, unitId, status = null, limit = 10, offset = 0) {
     return new Promise((resolve, reject) => {
-      const query = `
-        SELECT
-          id, manager_id, user_id, name, email, phone,
-          passport_number, passport_expiration,
-          police_clearance_expiration, notes, status, unit_id
-        FROM members
-        WHERE manager_id = ?
-        AND unit_id = ?
-        AND (? IS NULL OR status = ?)
-        ORDER BY id DESC
-      `;
-      db.all(query, [manager_id, unitId, status, status], (err, rows) => {
-        if (err) return reject(err);
-        resolve(rows || []);
-      });
+      const dataQuery = `
+      SELECT
+        id, manager_id, user_id, name, email, phone,
+        passport_number, passport_expiration,
+        police_clearance_expiration, notes, status, unit_id
+      FROM members
+      WHERE manager_id = ?
+      AND unit_id = ?
+      AND (? IS NULL OR status = ?)
+      ORDER BY id DESC
+      LIMIT ? OFFSET ?
+    `;
+
+      const countQuery = `
+      SELECT COUNT(*) as total
+      FROM members
+      WHERE manager_id = ?
+      AND unit_id = ?
+      AND (? IS NULL OR status = ?)
+    `;
+
+      db.get(
+        countQuery,
+        [managerId, unitId, status, status],
+        (err, countRow) => {
+          if (err) return reject(err);
+
+          db.all(
+            dataQuery,
+            [managerId, unitId, status, status, limit, offset],
+            (err, rows) => {
+              if (err) return reject(err);
+
+              resolve({
+                rows: rows || [],
+                total: countRow.total
+              });
+            }
+          );
+        }
+      );
     });
   },
 

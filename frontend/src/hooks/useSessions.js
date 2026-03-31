@@ -39,8 +39,10 @@ export default function useSessions() {
     setError(null);
 
     try {
-      const open = await fetchOpenSessions();
-      const history = await fetchSessionHistory(); // ← novo endpoint
+      const [open, history] = await Promise.all([
+        fetchOpenSessions(),
+        fetchSessionHistory()
+      ]);
 
       setSessions(open || []);
       setHistorySessions(history || []);

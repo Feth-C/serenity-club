@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import useReports, { reportColumnsConfig } from "../../hooks/useReports";
-import ReportFilters from "../../components/reports/ReportFilters";
-import ReportTable from "../../components/reports/ReportTable";
-import ExportButtons from "../../components/reports/ExportButtons";
+import ReportFilters from "./components/ReportFilters";
+import ReportTable from "./components/ReportTable";
+import ExportButtons from "./components/ExportButtons";
 
 const ReportsSessions = () => {
   const [filters, setFilters] = useState({});

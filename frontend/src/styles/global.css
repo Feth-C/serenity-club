@@ -1,0 +1,94 @@
+/* frontend/src/styles/global.css */
+
+@import "./tokens.css";
+
+/* ============================= */
+/* RESET                         */
+/* ============================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* ============================= */
+/* BODY                          */
+/* ============================= */
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-base);
+
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================= */
+/* HEADINGS                      */
+/* ============================= */
+
+h1 {
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+h2 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+}
+
+h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+/* ============================= */
+/* LINKS                         */
+/* ============================= */
+
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* ============================= */
+/* BUTTON RESET                  */
+/* ============================= */
+
+button {
+  font-family: var(--font-family-base);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* ============================= */
+/* FORM RESET                    */
+/* ============================= */
+
+input,
+select,
+textarea {
+  font-family: var(--font-family-base);
+}

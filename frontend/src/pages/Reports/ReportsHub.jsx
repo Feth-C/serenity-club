@@ -1,7 +1,7 @@
 // frontend/src/pages/Reports/ReportsHub.jsx
 
 import React, { useState } from "react";
-import ReportTabs from "../../components/reports/ReportTabs";
+import ReportTabs from "./components/ReportTabs";
 
 import ReportsSessions from "./ReportsSessions";
 import ReportsFinancial from "./ReportsFinancial";

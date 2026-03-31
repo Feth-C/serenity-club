@@ -73,6 +73,62 @@ module.exports = {
   },
 
   // -----------------------------
+  // Listar usuários com paginação
+  // -----------------------------
+  findAllPaginated({ status = null, unitId = null, limit = 10, offset = 0 } = {}) {
+    return new Promise((resolve, reject) => {
+
+      let baseQuery = `
+      FROM users u
+      INNER JOIN user_units uu ON uu.user_id = u.id
+      WHERE uu.is_active = 1
+    `;
+
+      const params = [];
+
+      if (status) {
+        baseQuery += ' AND u.status = ?';
+        params.push(status);
+      }
+
+      if (unitId) {
+        baseQuery += ' AND uu.unit_id = ?';
+        params.push(unitId);
+      }
+
+      // 🔹 Query total
+      const totalQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+
+      db.get(totalQuery, params, (err, totalRow) => {
+        if (err) return reject(err);
+
+        const total = totalRow.total;
+
+        // 🔹 Query paginada
+        const dataQuery = `
+        SELECT u.id, u.name, u.email, u.role, u.status, u.created_at
+        ${baseQuery}
+        ORDER BY u.id DESC
+        LIMIT ? OFFSET ?
+      `;
+
+        db.all(
+          dataQuery,
+          [...params, limit, offset],
+          (err2, rows) => {
+            if (err2) return reject(err2);
+
+            resolve({
+              items: rows,
+              total
+            });
+          }
+        );
+      });
+    });
+  },
+
+  // -----------------------------
   // Buscar unidades do usuário
   // -----------------------------
   getUnits(userId) {

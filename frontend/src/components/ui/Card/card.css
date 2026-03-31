@@ -1,0 +1,184 @@
+/* components/ui/Card/card.css */
+
+/* ============================= */
+/* BASE CARD                     */
+/* ============================= */
+
+.card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  transition: var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================= */
+/* CARD STRUCTURE                */
+/* ============================= */
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border-light);
+}
+
+.card-header h3 {
+  margin: 0;
+}
+
+.card-body {
+  font-size: var(--font-size-md);
+}
+
+.card-footer {
+  margin-top: auto;
+}
+
+/* ============================= */
+/* CARD BUTTON                   */
+/* ============================= */
+
+.card-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 28px;
+  height: 28px;
+
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+
+  color: var(--color-bg-surface);
+  background-color: var(--color-primary);
+
+  border-radius: var(--radius-sm);
+
+  text-decoration: none;
+  /* remove underline */
+  line-height: 1;
+
+  transition: var(--transition-fast);
+}
+
+.card-btn:hover {
+  background-color: var(--color-primary-dark);
+  text-decoration: none;
+  color: var(--color-text-muted);
+  /* garante que não apareça */
+}
+
+/* ============================= */
+/* CARD HEADER BAR (DASHBOARD)  */
+/* ============================= */
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: var(--space-2) var(--space-3);
+
+  background-color: var(--color-bg-muted);
+  border-radius: var(--radius-md);
+
+  margin-bottom: var(--space-3);
+}
+
+/* título */
+.card-header h2,
+.card-header h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* botão "+" ou link */
+.card-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 28px;
+  height: 28px;
+
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+
+  color: var(--color-bg-surface);
+  background-color: var(--color-primary);
+
+  border-radius: var(--radius-sm);
+
+  text-decoration: none;
+  line-height: 1;
+
+  transition: var(--transition-fast);
+}
+
+.card-btn:hover {
+  background-color: var(--color-primary-dark);
+  text-decoration: none;
+}
+
+/* ============================= */
+/* DASHBOARD KPI CARD            */
+/* ============================= */
+
+.card-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 140px;
+  justify-content: space-between;
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.card-kpi .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kpi-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+}
+
+.kpi-income {
+  color: var(--color-success);
+  font-weight: var(--font-weight-medium);
+}
+
+.kpi-expense {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-medium);
+}
+
+.kpi-balance span:last-child {
+  font-weight: var(--font-weight-semibold);
+}
+
+.donut-container {
+  margin-top: var(--space-3);
+  max-height: 160px;
+}

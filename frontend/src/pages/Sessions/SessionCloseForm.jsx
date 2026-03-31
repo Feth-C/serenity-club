@@ -1,151 +1,508 @@
-// frontend/src/pages/Sessions/SessionCloseForm.jsx
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../../api/api';
-import { closeSession } from '../../api/sessions';
+// src/pages/sessions/SessionCloseForm.jsx
+
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import PageLayout from "../../components/layout/PageLayout/PageLayout";
+
+import Form from "../../components/ui/form/form";
+import FormGroup from "../../components/ui/form/form-group";
+import FormLabel from "../../components/ui/form/form-label";
+import FormInput from "../../components/ui/form/form-input";
+import FormSelect from "../../components/ui/form/form-select";
+
+import Button from "../../components/ui/Button/Button";
+
+import { getSessionById, closeSession } from "../../api/sessions";
 
 const SessionCloseForm = () => {
+
     const navigate = useNavigate();
     const { id } = useParams();
 
     const [session, setSession] = useState(null);
-    const [usedMinutes, setUsedMinutes] = useState('');
-    const [finalAmount, setFinalAmount] = useState('');
-    const [paidAmount, setPaidAmount] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('cash');
-    const [notes, setNotes] = useState('');
+    const [payerType, setPayerType] = useState("client");
+    const [payerName, setPayerName] = useState("");
+    const [usedMinutes, setUsedMinutes] = useState("");
+    const [finalAmount, setFinalAmount] = useState("");
 
-    // NOVOS CAMPOS
-    const [payerType, setPayerType] = useState('client');
-    const [payerName, setPayerName] = useState('');
+    const [partialPayment, setPartialPayment] = useState(false);
+    const [percentage, setPercentage] = useState("");
+    const [paidAmount, setPaidAmount] = useState("");
+
+    const [paymentMethod, setPaymentMethod] = useState("cash");
+
+    const [endTime, setEndTime] = useState("");
+    const [notes, setNotes] = useState("");
 
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState("");
 
-    useEffect(() => {
-        const fetchSession = async () => {
-            try {
-                const res = await api.get(`/sessions/${id}`);
-                const s = res.data;
+    const currency = session?.currency || "EUR";
 
-                setSession(s);
-                setUsedMinutes(s.planned_minutes);
-                setFinalAmount(s.planned_amount ?? '');
-                setPaidAmount(s.planned_amount ?? '');
-                setNotes(s.notes || '');
+    const formatNow = () => {
 
-                // padrão: pagador = cliente da sessão
-                setPayerName(s.client_name || '');
-            } catch (err) {
-                setError('Impossibile caricare la sessione');
-            }
-        };
-        fetchSession();
-    }, [id]);
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
 
-    useEffect(() => {
-        if (finalAmount !== '') {
-            setPaidAmount(finalAmount);
-        }
-    }, [finalAmount]);
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-    const handleClose = async (e) => {
-        e.preventDefault();
-        setError(null);
-        setLoading(true);
-
-        try {
-            await closeSession(id, {
-                used_minutes: Number(usedMinutes),
-                final_amount: Number(finalAmount),
-                paid_amount: Number(paidAmount),
-                payment_method: paymentMethod,
-                payer_type: payerType,
-                payer_name: payerName,
-                notes: notes || undefined,
-            });
-
-            navigate('/sessions');
-        } catch (err) {
-            console.error(err.response?.data || err);
-            setError(err.response?.data?.message || 'Errore durante la chiusura');
-        } finally {
-            setLoading(false);
-        }
     };
 
-    if (!session) return <p>Caricamento sessione...</p>;
+    useEffect(() => {
+
+        const loadSession = async () => {
+
+            try {
+
+                const data = await getSessionById(id);
+
+                setSession(data);
+                setPayerName(data.client_name || "");
+                setPayerType("client");
+                setUsedMinutes(data.planned_minutes || "");
+                setFinalAmount(data.planned_amount || "");
+                setNotes(data.notes || "");
+                setEndTime(formatNow());
+
+
+            } catch {
+
+                setError("Errore nel caricamento della sessione");
+
+            }
+
+        };
+
+        loadSession();
+
+    }, [id]);
+
+
+    const applyPercentage = (p) => {
+
+        if (!finalAmount) return;
+
+        const value = (Number(finalAmount) * p) / 100;
+
+        setPercentage(p);
+        setPaidAmount(value.toFixed(2));
+
+    };
+
+
+    const handlePercentageChange = (value) => {
+
+        setPercentage(value);
+
+        if (!finalAmount) return;
+
+        const calc = (Number(finalAmount) * Number(value)) / 100;
+
+        setPaidAmount(calc.toFixed(2));
+
+    };
+
+
+    const handlePaidAmountChange = (value) => {
+
+        setPaidAmount(value);
+
+        if (!finalAmount) return;
+
+        const perc = (Number(value) / Number(finalAmount)) * 100;
+
+        setPercentage(perc.toFixed(0));
+
+    };
+
+
+    const handlePartialToggle = (checked) => {
+
+        setPartialPayment(checked);
+
+        if (!checked) {
+
+            setPercentage("");
+            setPaidAmount("");
+
+        }
+
+    };
+
+
+    const remaining = finalAmount && paidAmount
+        ? (Number(finalAmount) - Number(paidAmount)).toFixed(2)
+        : null;
+
+
+    const handleSubmit = async (e) => {
+
+        e.preventDefault();
+
+        setLoading(true);
+        setError("");
+
+        const paid = partialPayment ? paidAmount : finalAmount;
+
+        try {
+
+            await closeSession(id, {
+                payer_type: payerType,
+                payer_name: payerName,
+                used_minutes: Number(usedMinutes),
+                final_amount: Number(finalAmount),
+                paid_amount: Number(paid),
+                currency: currency,
+                payment_method: paymentMethod,
+                actual_end_time: new Date(endTime).toISOString(),
+                notes: notes || null
+
+            });
+
+            navigate("/sessions");
+
+        } catch (err) {
+
+            setError(
+                err.response?.data?.message ||
+                "Errore durante la chiusura della sessione"
+            );
+
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    };
+
+
+    if (!session) return null;
+
 
     return (
-        <div style={{ padding: 20, maxWidth: 500 }}>
-            <h1>Chiudi sessione</h1>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
 
-            <p>
-                <strong>Cliente:</strong> {session.client_name || '-'} <br />
-                <strong>Inizio:</strong> {new Date(session.start_time).toLocaleString()} <br />
-                <strong>Visita:</strong> {session.visit_type === 'first' ? 'Prima volta' : 'Ritorno'} <br />
-                <strong>Minuti pianificati:</strong> {session.planned_minutes} <br />
-                <strong>Importo pianificato:</strong> {session.planned_amount || '-'} {session.currency}
-            </p>
+        <PageLayout
+            title="Chiudi Sessione"
+            backButton={
+                <Button
+                    variant="secondary"
+                    onClick={() => navigate(-1)}
+                >
+                    ← Indietro
+                </Button>
+            }
+            maxWidth="700px"
+        >
 
-            <form onSubmit={handleClose} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Form onSubmit={handleSubmit}>
 
-                <div>
-                    <label>Tipo pagador</label>
-                    <select value={payerType} onChange={e => setPayerType(e.target.value)}>
-                        <option value="client">Cliente</option>
-                        <option value="member">Membro</option>
-                        <option value="ad-hoc">Outro pagador</option>
-                    </select>
+                {/* ========================= */}
+                {/* SESSION SUMMARY           */}
+                {/* ========================= */}
+
+                <div className="session-summary">
+
+
+                    <h3>Informazioni sulla programmazione</h3>
+
+                    <p>
+                        <strong>Cliente:</strong> {session.client_name}
+                    </p>
+
+                    <p>
+                        <strong>Inizio:</strong>{" "}
+                        {new Date(session.start_time).toLocaleString()}
+                    </p>
+
+                    <p>
+                        <strong>Durata prevista:</strong>{" "}
+                        {session.planned_minutes} min
+                    </p>
+
+                    <p>
+                        <strong>Fine prevista:</strong>{" "}
+                        {session.expected_end_time
+                            ? new Date(session.expected_end_time).toLocaleString()
+                            : "-"}
+                    </p>
+
+                    <p>
+                        <strong>Importo previsto:</strong>{" "}
+                        {session.planned_amount
+                            ? `${Number(session.planned_amount).toFixed(2)} ${currency}`
+                            : "-"}
+                    </p>
+
+                    <p>
+                        <strong>Note:</strong>{" "}
+                        {session.notes}
+                    </p>
+
                 </div>
 
-                <div>
-                    <label>Nome do pagador</label>
-                    <input
-                        type="text"
-                        value={payerName}
-                        onChange={e => setPayerName(e.target.value)}
+
+                <div className="session-close-main">
+
+                    <FormGroup>
+
+                        <FormLabel>Minuti utilizzati</FormLabel>
+
+                        <FormInput
+                            type="number"
+                            value={usedMinutes}
+                            onChange={(e) => setUsedMinutes(e.target.value)}
+                            required
+                        />
+
+                    </FormGroup>
+
+
+                    <FormGroup>
+
+                        <FormLabel>Importo finale</FormLabel>
+
+                        <FormInput
+                            type="number"
+                            step="0.01"
+                            value={finalAmount}
+                            onChange={(e) => setFinalAmount(e.target.value)}
+                            required
+                        />
+
+                    </FormGroup>
+
+
+                    <FormGroup>
+
+                        <FormLabel>Valuta</FormLabel>
+
+                        <FormSelect
+                            value={currency}
+                            onChange={(e) => setSession({ ...session, currency: e.target.value })}
+                            options={[
+                                { value: "EUR", label: "EUR (€)" },
+                                { value: "CHF", label: "CHF (CHF)" }
+                            ]}
+                        />
+
+                    </FormGroup>
+
+                </div>
+
+                {/* ========================= */}
+                {/* PAYMENT METHOD            */}
+                {/* ========================= */}
+
+                <FormGroup>
+
+                    <FormLabel>Metodo pagamento</FormLabel>
+
+                    <FormSelect
+                        value={paymentMethod}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        options={[
+                            { value: "cash", label: "💰 Contanti" },
+                            { value: "card", label: "💳 Carta" },
+                            { value: "transfer", label: "🏦 Bonifico" },
+                            { value: "twint", label: "🌐 Twint" }
+                        ]}
+                    />
+
+                </FormGroup>
+
+
+                {/* ========================= */}
+                {/* PARTIAL PAYMENT TOGGLE    */}
+                {/* ========================= */}
+
+                <FormGroup>
+
+                    <div className="checkbox-field">
+
+                        <input
+                            id="partial-payment"
+                            type="checkbox"
+                            checked={partialPayment}
+                            onChange={(e) => handlePartialToggle(e.target.checked)}
+                        />
+
+                        <FormLabel htmlFor="partial-payment">
+                            Pagamento parziale
+                        </FormLabel>
+
+                    </div>
+
+                </FormGroup>
+
+
+                {/* ========================= */}
+                {/* PARTIAL PAYMENT UI        */}
+                {/* ========================= */}
+
+                {partialPayment && (
+
+                    <div className="session-close-partial">
+
+                        <FormGroup>
+
+                            <FormLabel>Percentuale</FormLabel>
+
+                            <FormInput
+                                type="number"
+                                value={percentage}
+                                onChange={(e) => handlePercentageChange(e.target.value)}
+                            />
+
+                            <div className="percentage-buttons">
+
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => applyPercentage(25)}
+                                >
+                                    25%
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => applyPercentage(50)}
+                                >
+                                    50%
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => applyPercentage(75)}
+                                >
+                                    75%
+                                </Button>
+
+                            </div>
+
+                        </FormGroup>
+
+
+                        <FormGroup>
+
+                            <FormLabel>Importo pagato</FormLabel>
+
+                            <div className="money-inline">
+
+                                <FormInput
+                                    type="number"
+                                    step="0.01"
+                                    value={paidAmount}
+                                    onChange={(e) => handlePaidAmountChange(e.target.value)}
+                                    required
+                                />
+
+                                <span className="currency-label">
+                                    {currency}
+                                </span>
+
+                            </div>
+
+                        </FormGroup>
+
+
+                        <FormGroup>
+
+                            <FormLabel>Saldo restante</FormLabel>
+
+                            <div
+                                className={`payment-remaining ${Number(remaining) > 0
+                                    ? "payment-remaining--pending"
+                                    : "payment-remaining--paid"
+                                    }`}
+                            >
+
+                                <strong>
+                                    {remaining || "0.00"} {currency}
+                                </strong>
+
+                            </div>
+
+                        </FormGroup>
+
+                    </div>
+
+                )}
+
+                {/* ========================= */}
+                {/* END TIME                  */}
+                {/* ========================= */}
+
+                <FormGroup>
+
+                    <FormLabel>Fine sessione</FormLabel>
+
+                    <FormInput
+                        type="datetime-local"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
                         required
                     />
+
+                </FormGroup>
+
+
+                {/* ========================= */}
+                {/* NOTES                     */}
+                {/* ========================= */}
+
+                <FormGroup>
+
+                    <FormLabel>Note</FormLabel>
+
+                    <FormInput
+                        as="textarea"
+                        rows={4}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
+
+                </FormGroup>
+
+
+                {error && (
+
+                    <p className="form-text form-text--error">
+                        {error}
+                    </p>
+
+                )}
+
+
+                <div className="form-actions">
+
+                    <Button
+                        type="submit"
+                        disabled={loading}
+                    >
+                        {loading
+                            ? "Salvataggio..."
+                            : "Chiudi Sessione"}
+                    </Button>
+
+                    <Button
+                        variant="secondary"
+                        onClick={() => navigate(-1)}
+                    >
+                        Annulla
+                    </Button>
+
                 </div>
 
-                <div>
-                    <label>Minuti Usati</label>
-                    <input type="number" value={usedMinutes} onChange={e => setUsedMinutes(e.target.value)} min="1" required />
-                </div>
+            </Form>
 
-                <div>
-                    <label>Importo finale</label>
-                    <input type="number" step="0.01" value={finalAmount} onChange={e => setFinalAmount(e.target.value)} required />
-                </div>
+        </PageLayout>
 
-                <div>
-                    <label>Pagato</label>
-                    <input type="number" step="0.01" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} required />
-                </div>
-
-                <div>
-                    <label>Metodo pagamento</label>
-                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-                        <option value="transfer">Bonifico / SEPA</option>
-                        <option value="cash">Contanti</option>
-                        <option value="card">Carta</option>
-                        <option value="twin">Twint</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Note</label>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)} />
-                </div>
-
-                <button type="submit" disabled={loading}>
-                    {loading ? 'Salvataggio...' : 'Chiudi sessione'}
-                </button>
-            </form>
-        </div>
     );
+
 };
 
 export default SessionCloseForm;

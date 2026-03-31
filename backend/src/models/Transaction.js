@@ -9,12 +9,11 @@ module.exports = {
   // -----------------------------
   create(data) {
     const sql = `
-    INSERT INTO transactions
-    (unit_id, payer_type, member_id, client_id, custom_payer_name,
-     type, category, amount, currency, date, description, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-
+      INSERT INTO transactions
+      (unit_id, payer_type, member_id, client_id, custom_payer_name,
+       type, category, amount, currency, date, description, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
     return new Promise((resolve, reject) => {
       db.run(
         sql,
@@ -41,64 +40,139 @@ module.exports = {
   },
 
   // -----------------------------
-  // Listar todas as transações da unidade
+  // Listar transações da unidade com filtros e paginação
   // -----------------------------
-  findAllByUnit(unitId) {
-    const sql = `
-      SELECT
-        t.*,
+  findAllByUnit(unitId, { page = 1, perPage = 10, type, category, payer_name, member_id, start_date, end_date, currency } = {}) {
+    const offset = (page - 1) * perPage;
+
+    let where = `WHERE t.unit_id = ?`;
+    const params = [unitId];
+
+    if (type) params.push(type), where += ' AND t.type = ?';
+    if (category) params.push(category), where += ' AND t.category = ?';
+    if (currency) params.push(currency), where += ' AND t.currency = ?';
+    if (member_id) params.push(member_id), where += ' AND t.member_id = ?';
+    if (start_date) params.push(start_date), where += ' AND t.date >= ?';
+    if (end_date) params.push(end_date), where += ' AND t.date <= ?';
+
+    // PAYER_NAME filter precisa de join
+    if (payer_name) {
+      const search = `%${payer_name}%`;
+      where += ` AND (
+        (t.payer_type='member' AND m.name LIKE ?)
+        OR (t.payer_type='client' AND c.name LIKE ?)
+        OR (t.payer_type='ad-hoc' AND t.custom_payer_name LIKE ?)
+      )`;
+      params.push(search, search, search);
+    }
+
+    const dataQuery = `
+      SELECT t.*, 
         u.name AS created_by_name,
         m.name AS member_name,
         c.name AS client_name,
         CASE
-          WHEN t.payer_type = 'member' THEN m.name
-          WHEN t.payer_type = 'client' THEN c.name
-          WHEN t.payer_type = 'ad-hoc' THEN t.custom_payer_name
+          WHEN t.payer_type='member' THEN m.name
+          WHEN t.payer_type='client' THEN c.name
+          WHEN t.payer_type='ad-hoc' THEN t.custom_payer_name
           ELSE 'Sconosciuto'
         END AS payer_name
       FROM transactions t
       LEFT JOIN members m ON m.id = t.member_id
       LEFT JOIN clients c ON c.id = t.client_id
       LEFT JOIN users u ON u.id = t.created_by
-      WHERE t.unit_id = ?
+      ${where}
       ORDER BY t.date DESC
+      LIMIT ? OFFSET ?
     `;
+
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM transactions t
+      LEFT JOIN members m ON m.id = t.member_id
+      LEFT JOIN clients c ON c.id = t.client_id
+      ${where}
+    `;
+
     return new Promise((resolve, reject) => {
-      db.all(sql, [unitId], (err, rows) => {
+      db.get(countQuery, params, (err, countRow) => {
         if (err) return reject(err);
-        resolve(rows || []);
+
+        const totalItems = countRow.total;
+        const totalPages = Math.ceil(totalItems / perPage);
+
+        db.all(dataQuery, [...params, perPage, offset], (err2, rows) => {
+          if (err2) return reject(err2);
+          resolve({ items: rows || [], page, totalPages, totalItems });
+        });
       });
     });
   },
 
   // -----------------------------
-  // Apenas transações dos membros do manager
+  // Transações dos membros do manager com filtros e paginação
   // -----------------------------
-  findByManagerAndUnit(managerId, unitId) {
-    const sql = `
-      SELECT
-        t.*,
+  findByManagerAndUnit(managerId, unitId, { page = 1, perPage = 10, type, category, payer_name, member_id, start_date, end_date, currency } = {}) {
+    const offset = (page - 1) * perPage;
+
+    let where = `WHERE m.manager_id = ? AND t.unit_id = ?`;
+    const params = [managerId, unitId];
+
+    if (type) params.push(type), where += ' AND t.type = ?';
+    if (category) params.push(category), where += ' AND t.category = ?';
+    if (currency) params.push(currency), where += ' AND t.currency = ?';
+    if (member_id) params.push(member_id), where += ' AND t.member_id = ?';
+    if (start_date) params.push(start_date), where += ' AND t.date >= ?';
+    if (end_date) params.push(end_date), where += ' AND t.date <= ?';
+
+    if (payer_name) {
+      const search = `%${payer_name}%`;
+      where += ` AND (
+        (t.payer_type='member' AND m.name LIKE ?)
+        OR (t.payer_type='client' AND c.name LIKE ?)
+        OR (t.payer_type='ad-hoc' AND t.custom_payer_name LIKE ?)
+      )`;
+      params.push(search, search, search);
+    }
+
+    const dataQuery = `
+      SELECT t.*,
         u.name AS created_by_name,
         m.name AS member_name,
         c.name AS client_name,
         CASE
-          WHEN t.payer_type = 'member' THEN m.name
-          WHEN t.payer_type = 'client' THEN c.name
-          WHEN t.payer_type = 'ad-hoc' THEN t.custom_payer_name
+          WHEN t.payer_type='member' THEN m.name
+          WHEN t.payer_type='client' THEN c.name
+          WHEN t.payer_type='ad-hoc' THEN t.custom_payer_name
           ELSE 'Sconosciuto'
         END AS payer_name
       FROM transactions t
       INNER JOIN members m ON m.id = t.member_id
       LEFT JOIN clients c ON c.id = t.client_id
       LEFT JOIN users u ON u.id = t.created_by
-      WHERE m.manager_id = ?
-        AND t.unit_id = ?
+      ${where}
       ORDER BY t.date DESC
+      LIMIT ? OFFSET ?
     `;
+
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM transactions t
+      INNER JOIN members m ON m.id = t.member_id
+      LEFT JOIN clients c ON c.id = t.client_id
+      ${where}
+    `;
+
     return new Promise((resolve, reject) => {
-      db.all(sql, [managerId, unitId], (err, rows) => {
+      db.get(countQuery, params, (err, countRow) => {
         if (err) return reject(err);
-        resolve(rows || []);
+        const totalItems = countRow.total;
+        const totalPages = Math.ceil(totalItems / perPage);
+
+        db.all(dataQuery, [...params, perPage, offset], (err2, rows) => {
+          if (err2) return reject(err2);
+          resolve({ items: rows || [], page, totalPages, totalItems });
+        });
       });
     });
   },

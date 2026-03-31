@@ -12,6 +12,7 @@ module.exports = {
   // -----------------------------
   create({
     unitId,
+    memberId = null,
     clientId = null,
     clientName = null,
     contact = null,
@@ -31,6 +32,7 @@ module.exports = {
       const query = `
       INSERT INTO sessions (
         unit_id,
+        member_id,
         client_id,
         client_name,
         contact,
@@ -45,13 +47,14 @@ module.exports = {
         notes,
         created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
       db.run(
         query,
         [
           unitId,
+          memberId,
           clientId,
           clientName,
           contact,
@@ -80,12 +83,16 @@ module.exports = {
   findOpenByUnit(unitId) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT *
-        FROM sessions
-        WHERE unit_id = ?
-          AND status = 'open'
-        ORDER BY start_time ASC
-      `;
+      SELECT
+        s.*,
+        m.name AS member_name
+      FROM sessions s
+      LEFT JOIN members m
+        ON s.member_id = m.id
+      WHERE s.unit_id = ?
+        AND s.status = 'open'
+      ORDER BY s.start_time ASC
+    `;
 
       db.all(query, [unitId], (err, rows) =>
         err ? reject(err) : resolve(rows)
@@ -99,12 +106,16 @@ module.exports = {
   findHistoryByUnit(unitId) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT *
-        FROM sessions
-        WHERE unit_id = ?
-          AND status IN ('closed', 'cancelled')
-        ORDER BY start_time DESC
-      `;
+      SELECT
+        s.*,
+        m.name AS member_name
+      FROM sessions s
+      LEFT JOIN members m
+        ON s.member_id = m.id
+      WHERE s.unit_id = ?
+        AND s.status IN ('closed', 'cancelled')
+      ORDER BY s.start_time DESC
+    `;
 
       db.all(query, [unitId], (err, rows) =>
         err ? reject(err) : resolve(rows)
@@ -118,11 +129,15 @@ module.exports = {
   getById(id) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT *
-        FROM sessions
-        WHERE id = ?
-        LIMIT 1
-      `;
+      SELECT
+        s.*,
+        m.name AS member_name
+      FROM sessions s
+      LEFT JOIN members m
+        ON s.member_id = m.id
+      WHERE s.id = ?
+      LIMIT 1
+    `;
 
       db.get(query, [id], (err, row) =>
         err ? reject(err) : resolve(row)

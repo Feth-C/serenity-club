@@ -28,21 +28,37 @@ module.exports = {
     },
 
     // -----------------------------
-    // Listar usuários (com filtro unit_id e status)
+    // Listar usuários com paginação
     // -----------------------------
     async list(req, res) {
-        if (req.userRole !== 'admin') throw new AppError('Accesso negato.', 403);
+        if (req.userRole !== 'admin') {
+            throw new AppError('Accesso negato.', 403);
+        }
 
         const { status } = req.query;
         const unitId = req.headers['x-unit-id'] || null;
 
-        const users = await User.findAll({ status, unitId: unitId ? Number(unitId) : null });
+        const page = parseInt(req.query.page) || 1;
+        const perPage = parseInt(req.query.perPage) || 10;
+
+        const offset = (page - 1) * perPage;
+
+        const result = await User.findAllPaginated({
+            status,
+            unitId: unitId ? Number(unitId) : null,
+            limit: perPage,
+            offset
+        });
+
+        const totalPages = Math.ceil(result.total / perPage);
 
         res.json({
             success: true,
             data: {
-                items: users,
-                total: users.length
+                items: result.items,
+                page,
+                totalPages,
+                totalItems: result.total
             }
         });
     },
