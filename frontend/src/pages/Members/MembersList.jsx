@@ -6,6 +6,7 @@ import Table from "../../components/ui/Table/Table";
 import PageLayout from "../../components/layout/PageLayout/PageLayout";
 import Button from "../../components/ui/Button/Button";
 import Pagination from "../../components/ui/Pagination/Pagination";
+import useToggleStatus from "../../hooks/useToggleStatus";
 
 const MembersList = () => {
   const navigate = useNavigate();
@@ -19,8 +20,11 @@ const MembersList = () => {
     totalItems,
     filters,
     setPage,
-    setFilters
+    setFilters,
+    refetch
   } = useFetchList("/members");
+
+  const toggleMemberStatus = useToggleStatus("/members", refetch);
 
   return (
     <PageLayout
@@ -87,13 +91,33 @@ const MembersList = () => {
               ? members.map((m) => ({
                 ...m,
                 actions: (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => navigate(`/members/edit/${m.id}`)}
-                  >
-                    Modifica
-                  </Button>
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => navigate(`/members/edit/${m.id}`)}
+                    >
+                      Modifica
+                    </Button>
+
+                    {m.status === "active" ? (
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={() => toggleMemberStatus(m.id, m.status, "membro")}
+                      >
+                        Disattiva
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => toggleMemberStatus(m.id, m.status, "membro")}
+                      >
+                        Riattiva
+                      </Button>
+                    )}
+                  </>
                 )
               }))
               : [

@@ -211,7 +211,9 @@ module.exports = {
   updateStatus(id, status) {
     return new Promise((resolve, reject) => {
       db.run(
-        `UPDATE sessions SET status = ? WHERE id = ?`,
+        `UPDATE sessions 
+       SET status = ?
+       WHERE id = ?`,
         [status, id],
         function (err) {
           if (err) return reject(err);
@@ -233,17 +235,18 @@ module.exports = {
     notes = null
   }) {
     return new Promise((resolve, reject) => {
+
       const query = `
-        UPDATE sessions
-        SET status = 'closed',
-            actual_end_time = ?,
-            final_amount = ?,
-            paid_amount = ?,
-            payment_method = ?,
-            notes = ?
-        WHERE id = ?
-          AND status = 'open'
-      `;
+      UPDATE sessions
+      SET status = 'closed',
+          actual_end_time = ?,
+          final_amount = ?,
+          paid_amount = ?,
+          payment_method = ?,
+          notes = ?
+      WHERE id = ?
+      AND status = 'open'
+    `;
 
       db.run(
         query,
@@ -260,6 +263,7 @@ module.exports = {
           resolve(this.changes);
         }
       );
+
     });
   },
 

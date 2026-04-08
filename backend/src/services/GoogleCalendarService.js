@@ -46,7 +46,7 @@ function buildEvent(session, extra = '') {
   const end = calculateEnd(session);
 
   return {
-    summary: `${session.member_name || ''} • Sessione — ${session.client_name}`,
+    summary: `${session.member_name ? session.member_name + ' • ' : ''}Sessione — ${session.client_name}`,
     description: buildDescription(session, extra),
     start: {
       dateTime: start.toISOString(),
@@ -128,11 +128,9 @@ async function updateSessionEvent(session) {
 // ---------------------------------------------------
 
 async function deleteSessionEvent(session) {
-
-  if (!session.google_event_id) return;
+  if (!session?.google_event_id) return;
 
   try {
-
     await calendar.events.delete({
       calendarId: 'primary',
       eventId: session.google_event_id
@@ -140,13 +138,22 @@ async function deleteSessionEvent(session) {
 
   } catch (error) {
 
-    if (error?.response?.status !== 404) {
-      console.error("Erro Google Calendar (delete):", error?.response?.data || error.message);
+    // evento não encontrado → ignora
+    if (error?.response?.status === 404) {
+      console.log("Evento Google não encontrado, ignorando.");
+      return;
     }
 
+    // recurso já deletado → ignora
+    if (error?.response?.data?.error?.code === 410) {
+      console.log("Evento já removido do Google Calendar");
+      return;
+    }
+
+    // qualquer outro erro → log
+    console.error("Erro Google Calendar (delete):", error?.response?.data || error.message);
   }
 }
-
 
 module.exports = {
   createSessionEvent,

@@ -1,122 +1,155 @@
 // frontend/src/pages/Auth/Login.jsx
 
-import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../contexts/AuthContext';
-import { useEffect } from 'react';
+import { useState, useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../contexts/AuthContext";
+import api from "../../api/api";
+import logo from "../../assets/brand/serenity_logotipo.svg";
+import Button from "../../components/ui/Button/Button";
+
+import "./auth.css";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useContext(AuthContext);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [setupMode, setSetupMode] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
+  // -----------------------------
+  // Verifica se existe algum usuário no backend
+  // -----------------------------
   useEffect(() => {
-    if (isAuthenticated()) navigate('/');
+    if (isAuthenticated()) {
+      navigate("/");
+      return;
+    }
+
+    const checkSetup = async () => {
+      try {
+        const res = await api.get("/auth/setup-check");
+        setSetupMode(res.setupMode);
+      } catch (err) {
+        console.error("Erro verificando setup:", err);
+      }
+    };
+
+    checkSetup();
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e) => {
+  // -----------------------------
+  // Login normal
+  // -----------------------------
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       await login(email, password);
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(err.message || 'Errore durante login');
+      setError(err.message || "Erro durante login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // -----------------------------
+  // Criação do admin inicial
+  // -----------------------------
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      await api.post("/auth/setup-admin", { name, email, password });
+
+      // Atualiza o setupMode
+      setSetupMode(false);
+
+      // Loga automaticamente
+      await login(email, password);
+
+      // Redireciona
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.message || "Erro criando administrador");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#1d1d1dff',
-        padding: '20px',
-        boxSizing: 'border-box'
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '400px',
-          minWidth: '300px',
-          padding: '40px 25px',
-          background: '#051427ff',
-          borderRadius: '12px',
-          boxShadow: '0 0 20px rgba(0,0,0,0.3)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#ffffff' }}>Login</h2>
-        <form style={{ display: 'flex', flexDirection: 'column', gap: '15px' }} onSubmit={handleSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={{ color: '#ffffff', marginBottom: '5px' }}>Email:</label>
+    <div className="auth">
+      <div className="auth__card">
+        <div className="auth__logo">
+          <img src={logo} alt="Serenity Club" />
+        </div>
+
+        <h2 className="auth__title">
+          {setupMode ? "Configuração Inicial" : "Login"}
+        </h2>
+
+        {setupMode && (
+          <p className="auth__setup-text">
+            Nenhum usuário encontrado. Crie o administrador inicial do sistema.
+          </p>
+        )}
+
+        <form
+          className="auth__form"
+          onSubmit={setupMode ? handleCreateAdmin : handleLogin}
+        >
+          {setupMode && (
+            <div className="auth__field">
+              <label className="auth__label">Nome</label>
+              <input
+                className="auth__input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
+          <div className="auth__field">
+            <label className="auth__label">Email</label>
             <input
+              className="auth__input"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '6px',
-                border: 'none',
-                boxSizing: 'border-box',
-                fontSize: '16px'
-              }}
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <label style={{ color: '#ffffff', marginBottom: '5px' }}>Password:</label>
+          <div className="auth__field">
+            <label className="auth__label">Senha</label>
             <input
+              className="auth__input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '6px',
-                border: 'none',
-                boxSizing: 'border-box',
-                fontSize: '16px'
-              }}
             />
           </div>
 
-          {error && <p style={{ color: 'red', textAlign: 'center', marginTop: '5px' }}>{error}</p>}
+          {error && <p className="auth__error">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: '14px',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: '#045891ff',
-              color: '#fff',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontSize: '16px',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => (e.target.style.backgroundColor = '#083a5cff')}
-            onMouseLeave={(e) => (e.target.style.backgroundColor = '#045891ff')}
-          >
-            {loading ? 'Entrando...' : 'Login'}
-          </button>
+          <Button type="submit" disabled={loading}>
+            {loading
+              ? "Processando..."
+              : setupMode
+                ? "Criar Administrador"
+                : "Entrar"}
+          </Button>
         </form>
       </div>
     </div>

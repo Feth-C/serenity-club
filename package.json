@@ -1,0 +1,48 @@
+{
+    "name": "serenity-club",
+    "version": "1.0.0",
+    "description": "Sistema Serenity Club",
+    "author": "Fe",
+    "main": "electron/main.js",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "cd frontend && npm run dev",
+        "build": "cd frontend && npm run build",
+        "start": "electron .",
+        "dist": "npm run build && electron-builder"
+    },
+    "devDependencies": {
+        "electron": "^41.1.0",
+        "electron-builder": "^26.8.1"
+    },
+    "build": {
+        "appId": "com.serenity.club",
+        "productName": "Serenity Club",
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "electron/**/*",
+            "frontend/dist/**/*",
+            "backend/**/*"
+        ],
+        "extraResources": [
+            {
+                "from": "backend",
+                "to": "backend"
+            }
+        ],
+        "asarUnpack": [
+            "backend/**/*"
+        ],
+        "win": {
+            "icon": "frontend/public/Serenity_FIvecon.ico",
+            "target": "nsis"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true
+        }
+    }
+}

@@ -2,23 +2,33 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
-// -----------------------------
-// Caminho onde o banco ficará armazenado
-// -----------------------------
-const dbPath = path.resolve(__dirname, 'serenity_club.sqlite');
+// diretório onde salvar o banco
+const dataDir = process.env.APP_DATA_PATH || __dirname;
+
+// cria pasta se não existir
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// caminho final do banco
+const dbPath = path.join(dataDir, 'serenity_club.sqlite');
+
+console.log("Database path:", dbPath);
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Errore durante l\'apertura del database:', err);
+    console.error("Errore durante l'apertura del database:", err);
   } else {
-    console.log('Database connesso correttamente.');
-    db.run('PRAGMA foreign_keys = ON;'); // ativa integridade referencial
+    console.log("Database connesso correttamente.");
   }
 });
 
-// -----------------------------
-// Exporta a conexão para os models
-// -----------------------------
-module.exports = db;
+// configurações do sqlite
+db.serialize(() => {
+  db.run("PRAGMA foreign_keys = ON;");
+  db.run("PRAGMA journal_mode = WAL;");
+});
 
+module.exports = db;

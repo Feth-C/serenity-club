@@ -9,22 +9,6 @@ import {
   cancelSession
 } from '../api/sessions';
 
-/**
- * Retorna a próxima hora cheia como string no formato 'YYYY-MM-DDTHH:mm'
- * Ideal para pré-preencher campos datetime-local
- */
-export function getNextRoundedHour() {
-  const now = new Date();
-  const d = new Date(now);
-
-  d.setMinutes(0, 0, 0); // minutos, segundos e milissegundos zerados
-  if (now > d) {
-    d.setHours(d.getHours() + 2);
-  }
-
-  return d.toISOString().slice(0, 16);
-}
-
 export default function useSessions() {
   const [sessions, setSessions] = useState([]);
   const [historySessions, setHistorySessions] = useState([]);

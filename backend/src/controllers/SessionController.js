@@ -1,6 +1,7 @@
 // backend/src/controllers/SessionController.js
 
 const Session = require('../models/Session');
+const Member = require('../models/Member');
 const Client = require('../models/Client');
 const SessionService = require('../services/SessionService');
 const GoogleCalendarService = require('../services/GoogleCalendarService'); // 🔹 NOVO
@@ -33,6 +34,11 @@ module.exports = {
       currency,
       notes
     } = req.body;
+
+    const member = await Member.findByIdAndUnit(member_id, activeUnitId);
+
+    if (!member)
+      throw new AppError('Membro non trovato.', 404);
 
     if (!visit_type || !start_time || !planned_minutes)
       throw new AppError(
@@ -67,16 +73,12 @@ module.exports = {
       if (existingClient) {
         finalClientId = existingClient.id;
       } else {
-        const client = await Client.create({
-          unitId: activeUnitId,
-          memberId: member_id,
-          name: client_name,
-          contact,
+        const client = await Client.create(
+          activeUnitId,
+          client_name,
           email,
-          address,
-          notes,
-          createdBy: userId
-        });
+          contact
+        );
         finalClientId = client.id;
       }
     }
@@ -93,10 +95,17 @@ module.exports = {
     let finalClientName = client_name;
 
     if (visit_type === 'return') {
-      const client = await Client.findById(finalClientId);
+      const client = await Client.getById(finalClientId);
       if (!client) throw new AppError('Cliente não encontrado.', 404);
       finalClientName = client.name;
     }
+
+    await SessionService.ensureMemberAvailability({
+      memberId: member_id,
+      unitId: activeUnitId,
+      startTime,
+      plannedMinutes
+    });
 
     // ------------------------------
     // Criar sessão (BANCO)
@@ -216,7 +225,7 @@ module.exports = {
       throw new AppError('Sessione già chiusa.', 400);
 
     if (member_id) {
-      const member = await Member.findById(member_id);
+      const member = await Member.findByIdAndUnit(member_id, activeUnitId);
 
       if (!member)
         throw new AppError('Membro non trovato.', 404);
@@ -230,6 +239,14 @@ module.exports = {
       planned_minutes !== undefined
         ? Number(planned_minutes)
         : session.planned_minutes;
+
+    await SessionService.ensureMemberAvailability({
+      memberId: member_id ?? session.member_id,
+      unitId: activeUnitId,
+      startTime: updatedStart,
+      plannedMinutes: updatedPlanned,
+      ignoreSessionId: id
+    });
 
     await Session.updateOpenSession(id, activeUnitId, {
       member_id: member_id ?? session.member_id,
@@ -250,7 +267,7 @@ module.exports = {
     // ------------------------------
     try {
       await GoogleCalendarService.updateSessionEvent(updated);
-      console.log(`Google Event created for session ${session.id}:`, eventId);
+      console.log(`Google Event updated for session ${updated.id}`);
     } catch (err) {
       console.error('Erro ao atualizar Google Calendar:', err);
     }
@@ -283,7 +300,7 @@ module.exports = {
       unitId: activeUnitId,
       userId,
       payload: {
-        actualEndTime: new Date().toISOString(),
+        actualEndTime: req.body.actual_end_time || new Date().toISOString(),
         payerType: payer_type,
         payerName: payer_name,
         finalAmount: Number(final_amount),
@@ -326,7 +343,7 @@ module.exports = {
     // 🔹 Atualizar evento no Google como CANCELADO
     // ------------------------------
     try {
-      await GoogleCalendarService.cancelSessionEvent(updated, userId);
+      await GoogleCalendarService.deleteSessionEvent(updated);
       console.log('Sessione annulata di Google Calendar');
     } catch (err) {
       console.error('Erro Google Calendar (delete):', err);

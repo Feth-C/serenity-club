@@ -12,7 +12,7 @@ module.exports = {
         INSERT INTO clients (unit_id, name, email, phone)
         VALUES (?, ?, ?, ?)
       `;
-      db.run(query, [unitId, name, email, phone], function(err) {
+      db.run(query, [unitId, name, email, phone], function (err) {
         if (err) return reject(err);
         resolve({ id: this.lastID });
       });
@@ -45,6 +45,24 @@ module.exports = {
   },
 
   // -----------------------------
+  // Buscar cliente por nome na unidade
+  // -----------------------------
+  findByNameInUnit(name, unitId) {
+    return new Promise((resolve, reject) => {
+      const query = `
+      SELECT * FROM clients
+      WHERE unit_id = ?
+      AND LOWER(name) = LOWER(?)
+      LIMIT 1
+    `;
+
+      db.get(query, [unitId, name], (err, row) =>
+        err ? reject(err) : resolve(row)
+      );
+    });
+  },
+
+  // -----------------------------
   // Atualizar cliente
   // -----------------------------
   update(id, data) {
@@ -57,7 +75,7 @@ module.exports = {
       const values = entries.map(([, value]) => value);
 
       const query = `UPDATE clients SET ${fields} WHERE id = ?`;
-      db.run(query, [...values, id], function(err) {
+      db.run(query, [...values, id], function (err) {
         if (err) return reject(err);
         resolve(this.changes);
       });
@@ -70,7 +88,7 @@ module.exports = {
   delete(id) {
     return new Promise((resolve, reject) => {
       const query = `DELETE FROM clients WHERE id = ?`;
-      db.run(query, [id], function(err) {
+      db.run(query, [id], function (err) {
         if (err) return reject(err);
         resolve(this.changes);
       });

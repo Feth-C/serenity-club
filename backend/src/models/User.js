@@ -144,6 +144,50 @@ module.exports = {
   },
 
   // -----------------------------
+  // Verificar se existe usuário
+  // -----------------------------
+  existsAnyUser() {
+    return new Promise((resolve, reject) => {
+
+      const query = `SELECT COUNT(*) as total FROM users`;
+
+      db.get(query, [], (err, row) => {
+        if (err) return reject(err);
+        resolve(row.total > 0);
+      });
+
+    });
+  },
+
+  // Cria uma nova unidade
+  createUnit(name, type = 'default') {
+    return new Promise((resolve, reject) => {
+      const query = `
+      INSERT INTO units (name, type, is_active)
+      VALUES (?, ?, 1)
+    `;
+      db.run(query, [name, type], function (err) {
+        if (err) return reject(err);
+        resolve({ id: this.lastID, name, type });
+      });
+    });
+  },
+
+  // Vincula um usuário a uma unidade
+  linkToUnit(userId, unitId, role = 'member') {
+    return new Promise((resolve, reject) => {
+      const query = `
+      INSERT INTO user_units (user_id, unit_id, role, is_active)
+      VALUES (?, ?, ?, 1)
+    `;
+      db.run(query, [userId, unitId, role], function (err) {
+        if (err) return reject(err);
+        resolve(true);
+      });
+    });
+  },
+
+  // -----------------------------
   // Atualizar usuário
   // -----------------------------
   update(id, data) {

@@ -104,7 +104,6 @@ const MemberForm = () => {
             value={member.email}
             onChange={(e) => handleChange("email", e.target.value)}
             placeholder="Inserisci l'email"
-            required
           />
         </FormGroup>
 

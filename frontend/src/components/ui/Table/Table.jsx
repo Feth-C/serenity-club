@@ -48,7 +48,11 @@ const Table = ({ columns = [], data = [] }) => {
                   const statusClass = col.key === "status" ? getStatusClass(value) : "";
 
                   return (
-                    <td key={col.key} className={`table-cell ${statusClass}`}>
+                    <td
+                      key={col.key}
+                      className={`table-cell ${statusClass} ${col.key === "actions" ? "table-actions" : ""
+                        }`}
+                    >
                       {value ?? "-"}
                     </td>
                   );

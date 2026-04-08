@@ -9,45 +9,29 @@ const { sessionCreateSchema, sessionUpdateSchema, sessionCloseSchema } = require
 
 const router = express.Router();
 
-// todas as rotas de sessão exigem autenticação
+// Todas as rotas de sessão exigem autenticação e unidade ativa
 router.use(auth);
 router.use(unitContext);
 
-// --------------------------------------------------
 // Criar nova sessão
-// POST /sessions
-// --------------------------------------------------
 router.post('/', validate(sessionCreateSchema), SessionController.create);
 
-// --------------------------------------------------
-// Listar sessões abertas da unit ativa
-// GET /sessions/open
-// --------------------------------------------------
+// Listar sessões abertas
 router.get('/open', SessionController.listOpen);
 
-// --------------------------------------------------
 // Histórico de sessões (fechadas + canceladas)
-// GET /sessions/history
-// --------------------------------------------------
 router.get('/history', SessionController.listHistory);
 
-// --------------------------------------------------
 // Buscar sessão por ID
-// GET /sessions/:id
-// --------------------------------------------------
 router.get('/:id', SessionController.get);
 
-// --------------------------------------------------
-// Atualizar tempo planejado
-// PUT /sessions/:id/time
-// --------------------------------------------------
+// Atualizar sessão
 router.put('/:id', validate(sessionUpdateSchema), SessionController.update);
 
-// --------------------------------------------------
 // Fechar sessão manualmente
-// PUT /sessions/:id/close
-// --------------------------------------------------
 router.put('/:id/close', validate(sessionCloseSchema), SessionController.close);
+
+// Cancelar sessão
 router.put('/:id/cancel', SessionController.cancel);
 
 module.exports = router;

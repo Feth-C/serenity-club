@@ -18,7 +18,7 @@ const transactionCreateSchema = z.object({
     currency: z.enum(['EUR', 'CHF']).default('EUR'),
     date: z.string(),
     description: z.string().optional(),
-    unit_id: z.number().int() // obrigatório
+    //unit_id: z.number().int() // obrigatório
   }).refine((data) => {
     if (data.payer_type === 'member') return !!data.member_id;
     if (data.payer_type === 'client') return !!data.client_id;

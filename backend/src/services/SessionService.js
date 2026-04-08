@@ -17,6 +17,40 @@ function buildDescription(session) {
   return `Pagamento parziale ${paid}/${total} ${currency} - Sessione #${session.id}`;
 }
 
+async function ensureMemberAvailability({
+  memberId,
+  unitId,
+  startTime,
+  plannedMinutes,
+  ignoreSessionId = null
+}) {
+
+  if (!memberId) return;
+
+  const start = new Date(startTime);
+  const end = new Date(start.getTime() + plannedMinutes * 60000);
+
+  const openSessions = await Session.findOpenByUnit(unitId);
+
+  const conflict = openSessions.find(s => {
+
+    if (ignoreSessionId && s.id === ignoreSessionId) return false;
+    if (s.member_id !== memberId) return false;
+
+    const sStart = new Date(s.start_time);
+    const sEnd = new Date(s.expected_end_time);
+
+    return start < sEnd && end > sStart;
+  });
+
+  if (conflict) {
+    throw new AppError(
+      `Membro già occupato nella sessione #${conflict.id}.`,
+      400
+    );
+  }
+}
+
 async function closeSession({ sessionId, unitId, userId, payload }) {
 
   const session = await Session.getById(sessionId);
@@ -44,7 +78,7 @@ async function closeSession({ sessionId, unitId, userId, payload }) {
       payer_type: payload.payerType,
       custom_payer_name: payload.payerType === 'ad-hoc' ? payload.payerName : null,
       client_id: payload.payerType === 'client' ? closedSession.client_id : null,
-      member_id: null,
+      member_id: closedSession.member_id,
       type: 'income',
       category: 'Chiusura della sessione',
       amount: closedSession.paid_amount,
@@ -58,4 +92,7 @@ async function closeSession({ sessionId, unitId, userId, payload }) {
   return closedSession;
 }
 
-module.exports = { closeSession };
+module.exports = {
+  closeSession,
+  ensureMemberAvailability
+};

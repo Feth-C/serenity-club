@@ -68,6 +68,18 @@
 }
 
 /* ============================= */
+/* ACTIONS COLUMN                */
+/* ============================= */
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    min-height: 32px;
+}
+
+/* ============================= */
 /* EMPTY STATE                   */
 /* ============================= */
 
@@ -82,7 +94,7 @@
 /*ATUAL .table-head th
 antes era ".table th" 
 apenas a cor subiu para .table-head*/
-    
+
 
 /*ATUAL .table-row
 antes era ".table td"

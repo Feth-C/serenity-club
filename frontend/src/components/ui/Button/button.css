@@ -79,6 +79,20 @@
 }
 
 /* ============================= */
+/* WARNING                       */
+/* ============================= */
+
+.btn--warning {
+  background-color: var(--color-warning);
+  color: #fff;
+}
+
+.btn--success:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+
+/* ============================= */
 /* SIZES                         */
 /* ============================= */
 
