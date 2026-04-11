@@ -1,6 +1,10 @@
 // backend/app.js
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({
+  path: path.resolve(__dirname, '.env')
+});
+
 const express = require('express');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
@@ -14,7 +18,7 @@ const app = express();
 // CORS
 // -----------------------------
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: true,
   credentials: true
 }));
 

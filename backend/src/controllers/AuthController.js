@@ -170,13 +170,4 @@ module.exports = {
       next(err);
     }
   },
-
-  async setupCheck(req, res, next) {
-    try {
-      const exists = await User.existsAnyUser();
-      res.json({ setupMode: !exists });
-    } catch (err) {
-      next(err);
-    }
-  }
 };
