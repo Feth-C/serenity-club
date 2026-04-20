@@ -1,0 +1,49 @@
+/* frontend/src/styles/layout.css */
+
+/* ============================= */
+/* LAYOUT WRAPPER                */
+/* ============================= */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================= */
+/* SIDEBAR                       */
+/* ============================= */
+
+.sidebar {
+  flex-shrink: 0; /* impede compressão */
+}
+
+/* ============================= */
+/* MAIN AREA                     */
+/* ============================= */
+
+.layout__main {
+  margin-left: 70px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  overflow: hidden;
+  transition: margin-left 0.25s ease;
+}
+
+/* Quando a sidebar estiver expandida */
+.sidebar--expanded ~ .layout__main {
+  margin-left: 200px; /* largura da sidebar expandida */
+}
+
+/* ============================= */
+/* CONTENT AREA                  */
+/* ============================= */
+
+.content {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-y: auto;
+  height: 100vh;
+}

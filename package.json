@@ -1,0 +1,70 @@
+{
+  "name": "serenity-club",
+  "version": "1.0.7",
+  "description": "Serenity Club Desktop Application",
+  "author": "Feth-C",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "npm run build:frontend && electron-builder",
+    "build:frontend": "cd frontend && npm run build",
+    "dev": "concurrently \"cd frontend && npm run dev\" \"electron .\""
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.3",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "pdfkit": "^0.18.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
+    "electron-rebuild": "^3.2.9",
+    "vite": "^8.0.8"
+  },
+  "build": {
+    "appId": "com.serenity.club",
+    "productName": "Serenity Club",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "package.json",
+      "!backend/src/database/*.sqlite*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/src/database",
+        "to": "database-template"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/better-sqlite3"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "frontend/public/Serenity_Fivecon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "frontend/public/Serenity_Fivecon.ico",
+      "uninstallerIcon": "frontend/public/Serenity_Fivecon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    }
+  }
+}

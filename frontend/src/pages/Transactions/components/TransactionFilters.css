@@ -1,0 +1,60 @@
+/* frontend/src/pages/transactions/components/TransactionFilters.css */
+
+.transaction-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-4);
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-item label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+}
+
+.filter-item input,
+.filter-item select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--color-border-light);
+    background-color: var(--color-bg-surface);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
+    transition: all 0.2s ease;
+}
+
+.filter-item input:focus,
+.filter-item select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(26, 52, 122, 0.2);
+    outline: none;
+}
+
+.filter-item input::placeholder {
+    color: var(--color-text-secondary);
+    font-style: italic;
+}
+
+.btn-reset-filters {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border-light);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reset-filters:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(26, 52, 122, 0.2);
+  background-color: var(--color-bg-surface-hover);
+}

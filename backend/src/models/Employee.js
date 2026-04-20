@@ -1,0 +1,111 @@
+// backend/src/models/Employee.js
+
+const db = require('../database/db');
+
+module.exports = {
+  // -----------------------------
+  // Criar um novo funcionário
+  // -----------------------------
+  create({ manager_id, user_id, name, email, phone, role, status = 'active', unit_id = null }) {
+    return new Promise((resolve, reject) => {
+      const query = `
+        INSERT INTO employees
+        (manager_id, user_id, name, email, phone, role, status, unit_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      db.run(query, [manager_id, user_id, name, email, phone, role, status, unit_id], function (err) {
+        if (err) return reject(err);
+        resolve({ id: this.lastID });
+      });
+    });
+  },
+
+  // -----------------------------
+  // Listar funcionários com paginação
+  // -----------------------------
+  findAllPaginated(filters = {}, unitId, limit = 10, offset = 0) {
+    return new Promise((resolve, reject) => {
+      const params = [];
+      let whereClause = `WHERE unit_id = ?`;
+      params.push(unitId);
+
+      if (filters.manager_id) {
+        whereClause += ' AND manager_id = ?';
+        params.push(filters.manager_id);
+      }
+
+      if (filters.status) {
+        whereClause += ' AND status = ?';
+        params.push(filters.status);
+      }
+
+      // 🔹 Total
+      const totalQuery = `SELECT COUNT(*) as total FROM employees ${whereClause}`;
+      db.get(totalQuery, params, (err, totalRow) => {
+        if (err) return reject(err);
+        const total = totalRow.total;
+
+        // 🔹 Dados paginados
+        const dataQuery = `
+          SELECT *
+          FROM employees
+          ${whereClause}
+          ORDER BY id DESC
+          LIMIT ? OFFSET ?
+        `;
+        db.all(dataQuery, [...params, limit, offset], (err2, rows) => {
+          if (err2) return reject(err2);
+          resolve({ rows: rows || [], total });
+        });
+      });
+    });
+  },
+
+  // -----------------------------
+  // Buscar funcionário pelo ID
+  // -----------------------------
+  findById(id) {
+    return new Promise((resolve, reject) => {
+      const query = `SELECT * FROM employees WHERE id = ?`;
+      db.get(query, [id], (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+  },
+
+  // -----------------------------
+  // Atualizar dados (update parcial)
+  // -----------------------------
+  update(id, data) {
+    return new Promise((resolve, reject) => {
+      const allowed = ['name', 'email', 'phone', 'role', 'user_id', 'status', 'unit_id'];
+      const entries = Object.entries(data).filter(([key]) => allowed.includes(key));
+
+      if (entries.length === 0) return resolve(0);
+
+      const fields = entries.map(([key]) => `${key} = ?`).join(', ');
+      const values = entries.map(([, value]) => value);
+
+      const query = `UPDATE employees SET ${fields} WHERE id = ?`;
+
+      db.run(query, [...values, id], function (err) {
+        if (err) return reject(err);
+        resolve(this.changes);
+      });
+    });
+  },
+
+  // -----------------------------
+  // Deletar funcionário
+  // -----------------------------
+  delete(id) {
+    return new Promise((resolve, reject) => {
+      const query = `DELETE FROM employees WHERE id = ?`;
+      db.run(query, [id], function (err) {
+        if (err) return reject(err);
+        resolve(this.changes);
+      });
+    });
+  }
+};

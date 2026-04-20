@@ -1,0 +1,55 @@
+# -----------------------------
+# Dependências Node
+# -----------------------------
+node_modules/
+
+# -----------------------------
+# Variáveis de ambiente
+# -----------------------------
+.env
+
+# -----------------------------
+# Uploads de arquivos (documentos, imagens)
+# -----------------------------
+uploads/
+src/uploads/
+
+# -----------------------------
+# Banco de dados SQLite
+# -----------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+src/database/*.sqlite
+
+# -----------------------------
+# Backups SQLite
+# -----------------------------
+*.sqlite*
+*.db-shm
+*.db-wal
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+
+# -----------------------------
+# Scripts sensíveis (ex: criação manual de admin)
+# -----------------------------
+createAdmin.js
+
+# -----------------------------
+# Sistema operacional
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# IDEs / Editors
+# -----------------------------
+.vscode/
+.idea/

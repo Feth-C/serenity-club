@@ -1,0 +1,20 @@
+/* components/ui/Status/status.css */
+
+/* ============================= */
+/* STATUS COLORS                 */
+/* ============================= */
+
+.status-success {
+    color: var(--color-success);
+    font-weight: var(--font-weight-semibold);
+}
+
+.status-warning {
+    color: var(--color-warning);
+    font-weight: var(--font-weight-semibold);
+}
+
+.status-danger {
+    color: var(--color-danger);
+    font-weight: var(--font-weight-semibold);
+}

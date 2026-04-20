@@ -1,0 +1,36 @@
+/* src/pages/member/MemberHome.css */
+
+.member-home {
+  padding: 24px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.member-header {
+  margin-bottom: 24px;
+}
+
+
+.documents-list {
+  list-style: none;
+  padding: 0;
+}
+
+.doc {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
+
+.doc.valid {
+  color: #4caf50;
+}
+
+.doc.expiring {
+  color: #ff9800;
+}
+
+.doc.missing {
+  color: #f44336;
+}

@@ -1,0 +1,112 @@
+/* frontend/src/Sessions/SessionsList.css */
+
+.sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(430px, 430px));
+    gap: var(--space-4);
+    justify-content: start;
+}
+
+/* CARD */
+
+.session-card {
+    background-color: var(--color-bg-main);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-light);
+    padding: var(--space-3);
+    box-shadow: var(--shadow-sm);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.session-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* HEADER */
+
+.session-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.session-client {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+}
+
+/* STATUS */
+
+.session-status {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    text-transform: capitalize;
+}
+
+.session-status--active {
+    background-color: var(--color-info);
+    color: #fff;
+}
+
+.session-status--closed {
+    background-color: var(--color-success);
+    color: #fff;
+}
+
+.session-status--cancelled {
+    background-color: var(--color-danger);
+    color: #fff;
+}
+
+/* INFO */
+
+.session-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    border-top: 1px solid var(--color-border-light);
+    padding-top: var(--space-2);
+}
+
+.session-row {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.session-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+.session-value {
+    font-size: var(--font-size-sm);
+}
+
+/* ACTION BUTTON */
+
+.session-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.session-action .btn {
+    min-width: 90px;
+}
+
+/* HISTORY BUTTON */
+
+.sessions-more {
+    margin-top: var(--space-3);
+    display: flex;
+    justify-content: center;
+}

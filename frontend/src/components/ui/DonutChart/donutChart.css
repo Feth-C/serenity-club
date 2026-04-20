@@ -1,0 +1,22 @@
+/* frontend/src/components/ui/DonutChart/donutChart.css */
+
+.donut-card {
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+}
+
+.donut-title {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.donut-wrapper {
+  flex: 1;
+  position: relative;
+}

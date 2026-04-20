@@ -1,0 +1,129 @@
+/* components/ui/Button/button.css */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: var(--space-2);
+
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+
+  padding: var(--space-2) var(--space-4);
+
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ============================= */
+/* PRIMARY                       */
+/* ============================= */
+
+.btn--primary {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+/* ============================= */
+/* SECONDARY                     */
+/* ============================= */
+
+.btn--secondary {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-bg-muted);
+}
+
+/* ============================= */
+/* DANGER                        */
+/* ============================= */
+
+.btn--danger {
+  background-color: var(--color-danger);
+  color: #fff;
+}
+
+.btn--danger:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* ============================= */
+/* SUCCESS                       */
+/* ============================= */
+
+.btn--success {
+  background-color: var(--color-success);
+  color: #fff;
+}
+
+.btn--success:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* ============================= */
+/* WARNING                       */
+/* ============================= */
+
+.btn--warning {
+  background-color: var(--color-warning);
+  color: #fff;
+}
+
+.btn--success:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+
+/* ============================= */
+/* SIZES                         */
+/* ============================= */
+
+.btn--sm {
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-3);
+}
+
+.btn--md {
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-4);
+}
+
+.btn--lg {
+  font-size: var(--font-size-md);
+  padding: var(--space-3) var(--space-5);
+}
+
+/* ============================= */
+/* ICONS                         */
+/* ============================= */
+
+.btn__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn__icon--left {
+  margin-right: var(--space-1);
+}
+
+.btn__icon--right {
+  margin-left: var(--space-1);
+}
