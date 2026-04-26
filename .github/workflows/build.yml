@@ -7,7 +7,6 @@ on:
 jobs:
   release:
     strategy:
-      # Impede que o erro de um sistema cancele o outro
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
@@ -21,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Atualizamos para a 22 para evitar avisos
+          node-version: 22
           cache: 'npm'
 
       - name: Install Root Dependencies
@@ -37,8 +36,8 @@ jobs:
         uses: samuelmeuli/action-electron-builder@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Adicionamos o skip de assinatura (codesigning) para não dar erro no Mac sem licença Apple
-          args: --config package.json
+          # Ajuste da Opção 1: apontando para a chave "build" do package.json
+          args: "-c.build=package.json" 
         env:
-          CSC_LINK: "" # Pula a assinatura de código no Mac
+          CSC_LINK: "" 
           CSC_IDENTITY_AUTO_DISCOVERY: false
