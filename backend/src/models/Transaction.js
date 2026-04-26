@@ -208,6 +208,46 @@ module.exports = {
   },
 
   // -----------------------------
+  // Buscar por Stats
+  // -----------------------------
+  getStats(unitId, { type, category, payer_name, member_id, start_date, end_date, currency } = {}) {
+    let where = `WHERE t.unit_id = ?`;
+    const params = [unitId];
+
+    if (type) params.push(type), where += ' AND t.type = ?';
+    if (category) params.push(category), where += ' AND t.category = ?';
+    if (currency) params.push(currency), where += ' AND t.currency = ?';
+    if (member_id) params.push(member_id), where += ' AND t.member_id = ?';
+    if (start_date) params.push(start_date), where += ' AND t.date >= ?';
+    if (end_date) params.push(end_date), where += ' AND t.date <= ?';
+
+    if (payer_name) {
+      const search = `%${payer_name}%`;
+      where += ` AND ((t.payer_type='member' AND m.name LIKE ?) OR (t.payer_type='client' AND c.name LIKE ?) OR (t.payer_type='ad-hoc' AND t.custom_payer_name LIKE ?))`;
+      params.push(search, search, search);
+    }
+
+    const sql = `
+      SELECT 
+        t.currency,
+        SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) as total_income,
+        SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END) as total_expense
+      FROM transactions t
+      LEFT JOIN members m ON m.id = t.member_id
+      LEFT JOIN clients c ON c.id = t.client_id
+      ${where}
+      GROUP BY t.currency
+    `;
+
+    return new Promise((resolve, reject) => {
+      db.all(sql, params, (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+  },
+
+  // -----------------------------
   // Atualizar transação
   // -----------------------------
   update(id, data) {

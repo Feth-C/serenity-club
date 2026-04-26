@@ -1,0 +1,47 @@
+name: Build Desktop Apps
+on:
+  push:
+    branches:
+      - main # Ou a sua branch principal
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest] # Roda nos dois sistemas ao mesmo tempo
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm install
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Rebuild Native Modules (SQLite)
+        run: npx electron-rebuild
+
+      - name: Build/Release Electron App
+        uses: samuelmeuli/action-electron-builder@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # No Windows gera NSIS, no Mac gera DMG
+          args: --config package.json
+          max_attempts: 3

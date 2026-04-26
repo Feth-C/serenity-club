@@ -2,6 +2,7 @@
 
 import { useNavigate } from "react-router-dom";
 import useFetchList from "../../hooks/useFetchList";
+import api from "../../api/api"; 
 
 import PageLayout from "../../components/layout/PageLayout/PageLayout";
 import Button from "../../components/ui/Button/Button";
@@ -12,11 +13,17 @@ import BalanceOverview from "./components/BalanceOverview";
 import TransactionFilters from "./components/TransactionFilters";
 import TransactionTable from "./components/TransactionTable";
 
+import { exportToCSV, exportToPDF } from "../../utils/exportUtils";
+
+// IMPORTAÇÃO DO CSS
+import "./transactionsLayout.css";
+
 const TransactionsList = () => {
     const navigate = useNavigate();
 
     const {
         items: transactions,
+        extraData: stats,
         loading,
         error,
         page,
@@ -39,8 +46,31 @@ const TransactionsList = () => {
         }
     });
 
-    // Lista de moedas únicas das transações atuais
-    const currencies = [...new Set(transactions.map(t => t.currency).filter(Boolean))];
+    const handleExport = async (type) => {
+        try {
+            // IMPORTANTE: Garantimos que pegamos os mesmos filtros da tela
+            const params = { ...filters, limit: 1000 }; // Aumentamos o limite para exportar tudo
+            const res = await api.get("/transactions", { params });
+
+            // Verifique se o caminho dos dados está correto (data.items ou data.data.items)
+            const allData = res.data?.items || res.data?.data?.items || [];
+
+            if (allData.length === 0) {
+                alert("Nessun dato trovato per os filtros aplicados.");
+                return;
+            }
+
+            const fileName = `report_transazioni_${new Date().getTime()}`;
+
+            if (type === 'csv') {
+                exportToCSV(allData, fileName);
+            } else if (type === 'pdf') {
+                exportToPDF(allData, "Report Transazioni");
+            }
+        } catch (err) {
+            console.error("Export error:", err);
+        }
+    };
 
     return (
         <PageLayout
@@ -71,32 +101,34 @@ const TransactionsList = () => {
                 )
             }
         >
-            {/* BALANCE OVERVIEW */}
-            <BalanceOverview
-                transactions={transactions}
-                currencies={currencies}
-            />
-
-            {/* FILTRI */}
-            <Card title="🔎 Filtri">
-                <TransactionFilters
-                    filters={filters}
-                    setFilters={setFilters}
+            <div className="transactions-grid">
+                {/* 1. Resumo de Saldo (Ocupa 100%) */}
+                <BalanceOverview
+                    globalStats={stats}
                     transactions={transactions}
                 />
-            </Card>
 
-            {/* LISTA DE TRANSAÇÕES */}
-            <Card>
-                <TransactionTable
-                    transactions={transactions}
-                    loading={loading}
-                />
-                {error && (
-                    <p className="text-error">{error}</p>
-                )}
-            </Card>
+                {/* 2. Filtros + Botões de Exportação (Ocupa 100%) */}
+                <div className="transactions-filters-area">
+                    <TransactionFilters
+                        filters={filters}
+                        setFilters={setFilters}
+                        transactions={transactions}
+                        onExport={handleExport} // Passando a função de exportar para dentro do filtro
+                    />
+                </div>
 
+                {/* 3. Tabela de Dados (Ocupa 100%) */}
+                <div className="transactions-table-area">
+                    <Card>
+                        <TransactionTable
+                            transactions={transactions}
+                            loading={loading}
+                        />
+                        {error && <p className="text-error">{error}</p>}
+                    </Card>
+                </div>
+            </div>
         </PageLayout>
     );
 };

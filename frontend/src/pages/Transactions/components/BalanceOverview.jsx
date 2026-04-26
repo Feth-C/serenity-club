@@ -2,19 +2,25 @@
 
 import { useMemo } from "react";
 import Card from "../../../components/ui/Card/Card";
-import TransactionsDonut from "./TransactionsDonut"; // opcional, gráfico de pizza
+import TransactionsDonut from "./TransactionsDonut";
 import "./BalanceOverview.css";
 
-export default function BalanceOverview({ transactions = [], currencies = [] }) {
+const getCurrencySymbol = (currency) => {
+    const symbols = { EUR: "€", USD: "$", CHF: "CHF", GBP: "£" };
+    return symbols[currency] || currency;
+};
 
-    // Símbolos das moedas
-    const getCurrencySymbol = (currency) => {
-        const symbols = { EUR: "€", USD: "$", CHF: "CHF", GBP: "£" };
-        return symbols[currency] || currency;
-    };
-
-    // Agrupamento por moeda considerando apenas transações filtradas
+export default function BalanceOverview({ globalStats, transactions = [] }) {
+    // 1. Organiza os dados (Prioriza Global > Local)
     const grouped = useMemo(() => {
+        if (globalStats && Array.isArray(globalStats)) {
+            const map = {};
+            globalStats.forEach(s => {
+                map[s.currency] = { income: s.total_income, expense: s.total_expense };
+            });
+            return map;
+        }
+
         const map = {};
         transactions.forEach(t => {
             if (!map[t.currency]) map[t.currency] = { income: 0, expense: 0 };
@@ -22,29 +28,25 @@ export default function BalanceOverview({ transactions = [], currencies = [] }) 
             else map[t.currency].expense += Number(t.amount);
         });
         return map;
-    }, [transactions]);
+    }, [globalStats, transactions]);
 
-    // Formata valores de acordo com moeda e região
+    const currencies = Object.keys(grouped);
+    if (!currencies.length) return null;
+
     const formatCurrency = (value, currency) => {
         const locale = currency === "CHF" ? "de-CH" : "it-IT";
-
-        // Mantemos sinal positivo/negativo separadamente
         const sign = value < 0 ? "-" : "";
         const formatted = new Intl.NumberFormat(locale, {
             style: "currency",
             currency,
             minimumFractionDigits: 2
         }).format(Math.abs(value));
-
         return `${sign}${formatted}`;
     };
 
-    if (!currencies.length) return null;
-
     return (
-        <Card title="💰 Riepilogo per valuta">
+        <Card title="💰 Riepilogo Finanziario">
             <div className="balance-grid">
-
                 {currencies.map(currency => {
                     const income = grouped[currency]?.income || 0;
                     const expense = grouped[currency]?.expense || 0;
@@ -53,47 +55,47 @@ export default function BalanceOverview({ transactions = [], currencies = [] }) 
 
                     return (
                         <div key={currency} className="balance-card">
-
                             <div className="balance-header">
                                 <span className="currency-code">{currency}</span>
                                 <span className="currency-symbol">{symbol}</span>
                             </div>
 
-                            <div className="balance-row">
-                                <span>🟢 Entrate</span>
-                                <span className="balance-income">
-                                    +{formatCurrency(income, currency)}
-                                </span>
-                            </div>
-
-                            <div className="balance-row">
-                                <span>🔴 Uscite</span>
-                                <span className="balance-expense">
-                                    -{formatCurrency(expense, currency)}
-                                </span>
-                            </div>
-
-                            <div className="balance-row balance-total">
-                                <strong>💲Saldo</strong>
-                                <span>
-                                    {formatCurrency(balance, currency)}
-                                </span>
-                            </div>
-
-                            {/* Opcional: gráfico donut */}
-                            {transactions.length > 0 && (
-                                <div className="donut-container">
-                                    <TransactionsDonut
-                                        transactions={transactions.filter(t => t.currency === currency)}
-                                        currency={currency}
-                                    />
+                            <div className="balance-body">
+                                <div className="balance-row">
+                                    <span>🟢 Entrate</span>
+                                    <span className="balance-income">
+                                        +{formatCurrency(income, currency)}
+                                    </span>
                                 </div>
-                            )}
 
+                                <div className="balance-row">
+                                    <span>🔴 Uscite</span>
+                                    <span className="balance-expense">
+                                        -{formatCurrency(expense, currency)}
+                                    </span>
+                                </div>
+
+                                <div className="balance-row balance-total">
+                                    <strong>💲 Saldo</strong>
+                                    <span className={balance >= 0 ? "pos" : "neg"}>
+                                        {formatCurrency(balance, currency)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* GRÁFICO DONUT (Agora com dados globais) */}
+                            <div className="donut-container">
+                                <TransactionsDonut
+                                    stats={globalStats?.find(s => s.currency === currency) || {
+                                        total_income: income,
+                                        total_expense: expense
+                                    }}
+                                    currency={currency}
+                                />
+                            </div>
                         </div>
                     );
                 })}
-
             </div>
         </Card>
     );

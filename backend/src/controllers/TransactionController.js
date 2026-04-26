@@ -103,17 +103,23 @@ module.exports = {
     };
 
     let result;
+    let stats; // Nova variável para os totais
+
     if (userRole === 'admin') {
       result = await Transaction.findAllByUnit(activeUnitId, { page, perPage, ...filters });
+      stats = await Transaction.getStats(activeUnitId, filters); // Busca o global
     } else if (userRole === 'manager') {
+      // Aqui você precisaria implementar o getStats para Manager também, seguindo a lógica do Model
       result = await Transaction.findByManagerAndUnit(userId, activeUnitId, { page, perPage, ...filters });
-    } else {
-      throw new AppError('Accesso negato.', 403);
+      stats = await Transaction.getStats(activeUnitId, { ...filters, manager_id: userId });
     }
 
     res.json({
       success: true,
-      data: result
+      data: {
+        ...result,
+        stats // Enviamos os totais globais aqui!
+      }
     });
   },
 

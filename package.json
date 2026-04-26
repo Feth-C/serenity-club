@@ -6,7 +6,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
-    "dist": "npm run build:frontend && electron-builder",
+    "dist": "npm run build:frontend && npx electron-rebuild && electron-builder",
     "build:frontend": "cd frontend && npm run build",
     "dev": "concurrently \"cd frontend && npm run dev\" \"electron .\""
   },
@@ -25,6 +25,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "electron": "^41.2.0",
     "electron-builder": "^26.8.1",
     "electron-rebuild": "^3.2.9",
@@ -65,6 +66,19 @@
       "installerIcon": "frontend/public/Serenity_Fivecon.ico",
       "uninstallerIcon": "frontend/public/Serenity_Fivecon.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "frontend/public/Serenity_Fivecon.icns", 
+      "category": "public.app-category.finance",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "contents": [
+        { "x": 410, "y": 150, "type": "link", "path": "/Applications" },
+        { "x": 130, "y": 150, "type": "file" }
+      ]
     }
   }
 }

@@ -1,6 +1,6 @@
 // electron/main.cjs
 
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, globalShortcut } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
@@ -67,6 +67,9 @@ function createWindow() {
     width: 1200,
     height: 800,
     show: false,
+    fullscreen: true,
+    autoHideMenuBar: true,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default', // Visual elegante no Mac
     webPreferences: {
       contextIsolation: true
     }
@@ -88,8 +91,29 @@ function createWindow() {
     win.loadFile(indexPath);
   }
 
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => {
+    win.show();
+    win.maximize();
+  });
 }
+
+/ ========================
+  // ⌨️ ATALHOS DE TECLADO
+  // ========================
+  // Atalho para alternar FullScreen (F11 ou Cmd+Ctrl+F)
+  const toggleFull = () => {
+    const isFull = win.isFullScreen();
+    win.setFullScreen(!isFull);
+  };
+
+  win.on('focus', () => {
+    globalShortcut.register('F11', toggleFull);
+    globalShortcut.register('CommandOrControl+F', toggleFull);
+  });
+
+  win.on('blur', () => {
+    globalShortcut.unregisterAll();
+  });
 
 // ========================
 // AUTO UPDATE (SAFE ONCE)

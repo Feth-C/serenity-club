@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../api/api';
 import { normalizeItems } from '../utils/normalizeItems';
+import { normalizeEntity } from '../utils/normalizeEntity'; // 👈 ADICIONE ESTA LINHA
 
 const useFetchList = (
   endpoint,
@@ -15,6 +16,7 @@ const useFetchList = (
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState(initialFilters);
+  const [extraData, setExtraData] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -24,34 +26,27 @@ const useFetchList = (
       const params = { page, limit: perPage, ...filters };
       const res = await api.get(endpoint, { params });
 
-      /**
-       * 🔹 NOVO PADRÃO OFICIAL (Backend paginado)
-       * {
-       *   data: [...],
-       *   page,
-       *   totalPages,
-       *   totalItems
-       * }
-       */
-      if (Array.isArray(res.data?.data)) {
-        setItems(res.data.data);
-        setTotalPages(res.data.totalPages || 1);
-        setTotalItems(res.data.totalItems || 0);
-      } else {
-        /**
-         * 🔹 Compatibilidade com endpoints antigos
-         */
-        const normalized = normalizeItems(res);
-        setItems(normalized);
-        setTotalPages(res.data?.totalPages || 1);
-        setTotalItems(res.data?.totalItems);
+      // 1. Usamos o seu normalizeEntity para pegar a raiz dos dados (o objeto 'data' da resposta)
+      // Isso vai retornar { items, stats, totalPages, totalItems } se vier do novo Controller
+      const rootData = normalizeEntity(res);
+
+      if (rootData) {
+        // 2. Extraímos os itens usando sua lógica de array
+        // Passamos rootData envolto em um objeto para o normalizeItems entender o contexto
+        const itemsArray = normalizeItems({ data: rootData });
+        setItems(itemsArray);
+
+        // 3. Pegamos os metadados de paginação que agora estão no rootData
+        setTotalPages(rootData.totalPages || 1);
+        setTotalItems(rootData.totalItems || 0);
+
+        // 4. Capturamos o extraData (stats)
+        setExtraData(rootData.stats || null);
       }
     } catch (err) {
       console.error(`Errore nel caricamento ${endpoint}`, err);
       setError('Errore nel caricamento dei dati');
       setItems([]);
-      setTotalPages(1);
-      setTotalItems(0);
     } finally {
       setLoading(false);
     }
@@ -68,6 +63,7 @@ const useFetchList = (
 
   return {
     items,
+    extraData,
     loading,
     error,
     page,

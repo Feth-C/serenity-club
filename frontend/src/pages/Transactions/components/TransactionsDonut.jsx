@@ -3,33 +3,27 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import "./TransactionsDonut.css";
 
-export default function TransactionsDonut({ transactions, currency }) {
-  if (!transactions?.length) return null;
+export default function TransactionsDonut({ stats, currency }) {
+  // Agora recebemos 'stats' em vez de 'transactions'
+  if (!stats) return null;
 
-  const income = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  const expense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
+  const income = Number(stats.total_income || 0);
+  const expense = Number(stats.total_expense || 0);
   const total = income + expense;
 
-  const incomePercent = total ? (income / total) * 100 : 0;
-  const expensePercent = total ? (expense / total) * 100 : 0;
+  if (total === 0) return <p className="text-muted text-center">Nessun dato</p>;
 
   const data = [
     {
       name: "Entrate",
       value: income,
-      percent: incomePercent,
+      percent: (income / total) * 100,
       color: "var(--color-success)",
     },
     {
       name: "Uscite",
       value: expense,
-      percent: expensePercent,
+      percent: (expense / total) * 100,
       color: "var(--color-danger)",
     },
   ];
@@ -38,30 +32,26 @@ export default function TransactionsDonut({ transactions, currency }) {
     new Intl.NumberFormat("it-IT", {
       style: "currency",
       currency: currency,
-      minimumFractionDigits: 2,
     }).format(value);
 
   return (
     <div className="donut-chart">
       <div className="donut-visual">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={150}>
           <PieChart>
             <Pie
               data={data}
               dataKey="value"
-              innerRadius={75}
-              outerRadius={100}
-              paddingAngle={3}
+              innerRadius={50}
+              outerRadius={70}
+              paddingAngle={5}
               stroke="none"
             >
               {data.map((entry, index) => (
                 <Cell key={index} fill={entry.color} />
               ))}
             </Pie>
-
-            <Tooltip
-              formatter={(value) => formatCurrency(value)}
-            />
+            <Tooltip formatter={(value) => formatCurrency(value)} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -69,14 +59,9 @@ export default function TransactionsDonut({ transactions, currency }) {
       <div className="donut-legend">
         {data.map((item, i) => (
           <div key={i} className="legend-item">
-            <span
-              className="legend-color"
-              style={{ background: item.color }}
-            />
+            <span className="legend-color" style={{ background: item.color }} />
             <span className="legend-label">{item.name}</span>
-            <span className="legend-value">
-              {item.percent.toFixed(0)}%
-            </span>
+            <span className="legend-value">{item.percent.toFixed(1)}%</span>
           </div>
         ))}
       </div>
