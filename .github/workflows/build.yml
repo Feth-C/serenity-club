@@ -2,13 +2,15 @@ name: Build Desktop Apps
 on:
   push:
     branches:
-      - main # Ou a sua branch principal
+      - main
 
 jobs:
   release:
     strategy:
+      # Impede que o erro de um sistema cancele o outro
+      fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest] # Roda nos dois sistemas ao mesmo tempo
+        os: [windows-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -19,29 +21,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # Atualizamos para a 22 para evitar avisos
           cache: 'npm'
 
       - name: Install Root Dependencies
         run: npm install
 
-      - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          npm install
-
       - name: Build Frontend
         run: |
           cd frontend
+          npm install
           npm run build
 
-      - name: Rebuild Native Modules (SQLite)
-        run: npx electron-rebuild
-
-      - name: Build/Release Electron App
+      - name: Build Electron App
         uses: samuelmeuli/action-electron-builder@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # No Windows gera NSIS, no Mac gera DMG
+          # Adicionamos o skip de assinatura (codesigning) para não dar erro no Mac sem licença Apple
           args: --config package.json
-          max_attempts: 3
+        env:
+          CSC_LINK: "" # Pula a assinatura de código no Mac
+          CSC_IDENTITY_AUTO_DISCOVERY: false
