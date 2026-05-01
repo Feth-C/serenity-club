@@ -33,14 +33,15 @@ jobs:
           npm run build
 
       - name: Build Electron App
-        run: |
-          npx electron-builder --mac --config electron-builder.json
-          npx electron-builder --win --config electron-builder.json
+        uses: samuelmeuli/action-electron-builder@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Ajuste da Opção 1: apontando para a chave "build" do package.json
+          args: "-c.build=package.json" 
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ""
+          CSC_LINK: "" 
           CSC_IDENTITY_AUTO_DISCOVERY: false
-
+      
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

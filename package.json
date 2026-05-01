@@ -6,7 +6,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
-    "dist": "npm run build:frontend && npx electron-rebuild && electron-builder --config electron-builder.json",
+    "dist": "npm run build:frontend && npx electron-rebuild && electron-builder",
     "build:frontend": "cd frontend && npm run build",
     "dev": "concurrently \"cd frontend && npm run dev\" \"electron .\""
   },
@@ -30,5 +30,55 @@
     "electron-builder": "^26.8.1",
     "electron-rebuild": "^3.2.9",
     "vite": "^8.0.8"
+  },
+  "build": {
+    "appId": "com.serenity.club",
+    "productName": "Serenity Club",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "package.json",
+      "!backend/src/database/*.sqlite*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/src/database",
+        "to": "database-template"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/better-sqlite3"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "frontend/public/Serenity_Fivecon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "frontend/public/Serenity_Fivecon.ico",
+      "uninstallerIcon": "frontend/public/Serenity_Fivecon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "frontend/public/Serenity_Fivecon.icns", 
+      "category": "public.app-category.finance",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "contents": [
+        { "x": 410, "y": 150, "type": "link", "path": "/Applications" },
+        { "x": 130, "y": 150, "type": "file" }
+      ]
+    }
   }
 }
