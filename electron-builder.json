@@ -1,0 +1,44 @@
+{
+    "appId": "com.serenity.club",
+    "productName": "Serenity Club",
+    "directories": {
+        "output": "release"
+    },
+    "files": [
+        "electron/**/*",
+        "backend/**/*",
+        "frontend/dist/**/*",
+        "package.json",
+        "!backend/src/database/*.sqlite*"
+    ],
+    "extraResources": [
+        {
+            "from": "backend/src/database",
+            "to": "database-template"
+        }
+    ],
+    "asar": true,
+    "asarUnpack": [
+        "**/*.node",
+        "node_modules/better-sqlite3"
+    ],
+    "win": {
+        "target": "nsis",
+        "icon": "frontend/public/Serenity_Fivecon.ico"
+    },
+    "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "createDesktopShortcut": true,
+        "installerIcon": "frontend/public/Serenity_Fivecon.ico",
+        "uninstallerIcon": "frontend/public/Serenity_Fivecon.ico",
+        "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+        "target": [
+            "dmg"
+        ],
+        "icon": "frontend/public/Serenity_Fivecon.icns",
+        "category": "public.app-category.finance"
+    }
+}

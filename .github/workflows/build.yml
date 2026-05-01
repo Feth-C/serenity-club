@@ -36,8 +36,8 @@ jobs:
         uses: samuelmeuli/action-electron-builder@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Ajuste da Opção 1: apontando para a chave "build" do package.json
-          args: "-c.build=package.json" 
+          # Agora apontamos para o arquivo JSON puro, sem a chave "build" no topo
+          args: "--config electron-builder.json"
         env:
-          CSC_LINK: "" 
+          CSC_LINK: ""
           CSC_IDENTITY_AUTO_DISCOVERY: false
