@@ -33,7 +33,9 @@ jobs:
           npm run build
 
       - name: Build Electron App
-        run: npx electron-builder --config electron-builder.json
+        run: |
+          npx electron-builder --mac --config electron-builder.json
+          npx electron-builder --win --config electron-builder.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ""

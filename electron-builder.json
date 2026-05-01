@@ -40,9 +40,12 @@
         ],
         "icon": "frontend/public/Serenity_Fivecon.icns",
         "category": "public.app-category.finance",
-        "type": "distribution"
+        "hardenedRuntime": false,
+        "gatekeeperAssess": false,
+        "identity": null
     },
     "dmg": {
+        "artifactName": "${productName}-Mac-${version}.${ext}",
         "contents": [
             {
                 "x": 410,
