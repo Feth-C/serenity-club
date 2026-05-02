@@ -50,8 +50,11 @@ const Sidebar = () => {
 
   return (
     <aside className={`sidebar ${expanded ? "sidebar--expanded" : ""}`}>
-      <div className="sidebar__logo">
-        {expanded ? <img src={Logotipo} alt="Serenity Club" /> : <img src={Icone} alt="Serenity" />}
+      <div className="sidebar__logo app-drag">
+        {expanded ?
+          <img src={Logotipo} alt="Serenity Club" className="app-no-drag" /> :
+          <img src={Icone} alt="Serenity" className="app-no-drag" />
+        }
       </div>
 
       <div className="sidebar__top">

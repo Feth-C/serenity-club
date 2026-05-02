@@ -3,9 +3,12 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-require("dotenv").config({
-  path: path.join(__dirname, ".env")
-});
+
+if (process.env.NODE_ENV !== 'production') {
+  require("dotenv").config({
+    path: path.join(__dirname, ".env")
+  });
+}
 
 const routes = require("./src/routes");
 const errorHandler = require("./src/middlewares/errorHandler");

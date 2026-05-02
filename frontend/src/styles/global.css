@@ -92,3 +92,24 @@ select,
 textarea {
   font-family: var(--font-family-base);
 }
+
+/* ============================= */
+/* ELECTRON DRAG AREA            */
+/* ============================= */
+
+/* Permite arrastar a janela pela barra superior ou áreas vazias */
+/* Adicione esta classe ao seu componente de Header ou Sidebar */
+.app-drag-region {
+  -webkit-app-region: drag;
+}
+
+/* Garante que botões e inputs dentro da área de drag ainda funcionem */
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Opcional: Se quiser que o topo do app sempre seja arrastável */
+#root {
+  display: flex;
+  flex-direction: column;
+}

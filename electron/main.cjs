@@ -51,10 +51,14 @@ function startBackend() {
     // EM PRODUÇÃO: Importamos o servidor diretamente
     // Isso é muito mais leve e evita problemas de permissão do Windows
     try {
-      require("../backend/server.js");
-      console.log("[BACKEND] Started via require (Production)");
+      console.log("[BACKEND] Tentando carregar server.js...");
+      require(path.join(app.getAppPath(), "backend", "server.js"));
+      console.log("[BACKEND] Require finalizado com sucesso");
     } catch (err) {
-      console.error("[BACKEND ERROR]", err);
+      console.error("[BACKEND CRITICAL ERROR]", err);
+      // Isso vai criar uma caixa de mensagem no Windows mostrando o erro real
+      const { dialog } = require('electron');
+      dialog.showErrorBox("Erro no Backend", err.message + "\n" + err.stack);
     }
   } else {
     // EM DESENVOLVIMENTO: Mantemos o spawn para facilitar o debug
@@ -76,10 +80,12 @@ function createWindow() {
     height: 800,
     show: false,
     fullscreen: true,
+    frame: false,
     autoHideMenuBar: true,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default', // Visual elegante no Mac
     webPreferences: {
-      contextIsolation: true
+      contextIsolation: true,
+      nodeIntegration: false
     }
   });
 
@@ -113,9 +119,15 @@ function createWindow() {
     win.setFullScreen(!isFull);
   };
 
+  const closeApp = () => {
+    app.quit();
+  };
+
   win.on('focus', () => {
     globalShortcut.register('F11', toggleFull);
+    globalShortcut.register('Escape', () => win.setFullScreen(false)); // Esc sai do FullScreen
     globalShortcut.register('CommandOrControl+F', toggleFull);
+    globalShortcut.register('CommandOrControl+W', closeApp); // Atalho para fechar
   });
 
   win.on('blur', () => {
