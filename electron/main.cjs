@@ -5,6 +5,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
+const fs = require('fs');
 
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = "info";
@@ -35,9 +36,16 @@ function startBackend() {
   const userDataPath = app.getPath("userData");
   const dbPath = path.join(userDataPath, "serenity_club.sqlite");
 
-  // Define a variável de ambiente para o db.js ler
+  // SE O BANCO NÃO EXISTE NO APPDATA, ELE CRIA UM NOVO (OU COPIA O TEMPLATE)
+  if (!fs.existsSync(dbPath)) {
+    console.log("[DATABASE] Banco não encontrado. Criando novo em:", dbPath);
+    // Aqui seu script de migração (migrateDb.js) entrará em ação automaticamente
+    // pois o server.js vai rodar e não encontrará dados.
+  }
+
   process.env.DB_PATH = dbPath;
   process.env.NODE_ENV = "production";
+  process.env.PORT = "3000";
 
   if (app.isPackaged) {
     // EM PRODUÇÃO: Importamos o servidor diretamente

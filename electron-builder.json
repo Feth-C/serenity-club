@@ -8,8 +8,7 @@
         "electron/**/*",
         "backend/**/*",
         "frontend/dist/**/*",
-        "package.json",
-        "!backend/src/database/*.sqlite*"
+        "package.json"
     ],
     "extraResources": [
         {

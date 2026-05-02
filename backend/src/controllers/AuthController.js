@@ -134,31 +134,21 @@ module.exports = {
         throw new AppError('Setup già completato.', 403);
       }
 
-      // Cria hash da senha
       const passwordHash = await bcrypt.hash(password, 10);
 
-      // Cria o admin
+      // 1. Cria o admin (O seu Model User.create já deve estar usando o better-sqlite3 internamente)
       const user = await User.create(name, email, passwordHash, 'admin', 'active');
 
-      // Pega a unidade principal
-      const unit = await new Promise((resolve, reject) => {
-        const query = `SELECT id FROM units WHERE is_active = 1 ORDER BY id ASC LIMIT 1`;
-        db.get(query, [], (err, row) => err ? reject(err) : resolve(row));
-      });
+      // 2. Pega a unidade principal (Formato better-sqlite3: síncrono!)
+      const unit = db.get(`SELECT id FROM units WHERE is_active = 1 ORDER BY id ASC LIMIT 1`);
 
       if (!unit) throw new AppError('Unidade principal não encontrada.', 500);
 
-      // Vincula o admin à unidade principal
-      await new Promise((resolve, reject) => {
-        const query = `
+      // 3. Vincula o admin à unidade (Formato better-sqlite3)
+      db.run(`
           INSERT INTO user_units (user_id, unit_id, role, is_active)
           VALUES (?, ?, 'admin', 1)
-        `;
-        db.run(query, [user.id, unit.id], function (err) {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
+      `, [user.id, unit.id]);
 
       res.status(201).json({
         success: true,
