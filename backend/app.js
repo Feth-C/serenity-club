@@ -5,9 +5,7 @@ const cors = require("cors");
 const path = require("path");
 
 if (process.env.NODE_ENV !== 'production') {
-  require("dotenv").config({
-    path: path.join(__dirname, ".env")
-  });
+  require("dotenv").config({ path: path.join(__dirname, ".env") });
 }
 
 const routes = require("./src/routes");

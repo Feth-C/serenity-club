@@ -38,9 +38,15 @@ jobs:
           npx electron-builder --win --config electron-builder.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Injeção dos segredos que você vai cadastrar no GitHub Settings
+          JWT_SECRET_SECRET: ${{ secrets.JWT_SECRET_SECRET }}
+          GOOGLE_CLIENT_ID_SECRET: ${{ secrets.GOOGLE_CLIENT_ID_SECRET }}
+          GOOGLE_CLIENT_SECRET_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET_SECRET }}
+          GOOGLE_REFRESH_TOKEN_SECRET: ${{ secrets.GOOGLE_REFRESH_TOKEN_SECRET }}
+          # Configurações de certificado (mantenha como estava)
           CSC_LINK: ""
           CSC_IDENTITY_AUTO_DISCOVERY: false
-      
+          
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:

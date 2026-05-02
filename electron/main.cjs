@@ -43,9 +43,19 @@ function startBackend() {
     // pois o server.js vai rodar e não encontrará dados.
   }
 
-  process.env.DB_PATH = dbPath;
+  // --- INJEÇÃO DE VARIÁVEIS (O que estava no seu .env) ---
   process.env.NODE_ENV = "production";
   process.env.PORT = "3000";
+  process.env.DB_PATH = dbPath;
+
+  // JWT
+  process.env.JWT_SECRET = process.env.JWT_SECRET_SECRET || process.env.JWT_SECRET;
+
+  // GOOGLE CALENDARprocess.env.JWT_SECRET = process.env.JWT_SECRET_SECRET || process.env.JWT_SECRET;
+  process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID_SECRET || process.env.GOOGLE_CLIENT_ID;
+  process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+  process.env.GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN_SECRET || process.env.GOOGLE_REFRESH_TOKE
+  process.env.GOOGLE_REDIRECT_URI = "http://localhost:3000/api/auth/google/callback";
 
   if (app.isPackaged) {
     // EM PRODUÇÃO: Importamos o servidor diretamente
