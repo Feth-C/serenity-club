@@ -95,9 +95,8 @@ function createWindow() {
     win.show();
     win.maximize();
   });
-}
 
-/ ========================
+  // ========================
   // ⌨️ ATALHOS DE TECLADO
   // ========================
   // Atalho para alternar FullScreen (F11 ou Cmd+Ctrl+F)
@@ -114,6 +113,7 @@ function createWindow() {
   win.on('blur', () => {
     globalShortcut.unregisterAll();
   });
+}
 
 // ========================
 // AUTO UPDATE (SAFE ONCE)
