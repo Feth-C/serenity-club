@@ -6,6 +6,7 @@ const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 const fs = require('fs');
+const { ipcMain } = require("electron");
 
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = "info";
@@ -95,8 +96,23 @@ function createWindow() {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default', // Visual elegante no Mac
     webPreferences: {
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.cjs')
     }
+  });
+
+  win.on('maximize', () => win.webContents.send('maximized-state', true));
+  win.on('unmaximize', () => win.webContents.send('maximized-state', false));
+
+  ipcMain.on('window-controls', (event, action) => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (!win) return;
+
+    if (action === 'minimize') win.minimize();
+    else if (action === 'maximize') {
+      win.isMaximized() ? win.unmaximize() : win.maximize();
+    }
+    else if (action === 'close') win.close();
   });
 
   const isDev = !app.isPackaged;

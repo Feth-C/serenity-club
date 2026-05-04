@@ -11,19 +11,27 @@ module.exports = {
     // Criar usuário interno apenas admin
     // -----------------------------
     async createByAdmin(req, res) {
-        const { name, email, role, status } = req.body;
+        const { name, email, role, status, password, unitIds } = req.body;
 
         const existingUser = await User.findByEmail(email);
         if (existingUser) throw new AppError('Utente già esistente.', 409);
 
-        const password = Math.random().toString(36).slice(-10);
-        const passwordHash = await bcrypt.hash(password, 10);
+        // Se não vier senha, usamos a padrão 'Serenity123'
+        const passwordToHash = password || 'Serenity123';
+        const passwordHash = await bcrypt.hash(passwordToHash, 10);
 
         const user = await User.create(name, email, passwordHash, role, status || 'active');
 
+        // Vincula as unidades selecionadas
+        if (unitIds && unitIds.length > 0) {
+            for (const unitId of unitIds) {
+                await User.linkToUnit(user.id, unitId, 'member');
+            }
+        }
+
         res.status(201).json(formatResponse(
-            { id: user.id, email, role, password },
-            'Utente creato con successo da admin.'
+            { id: user.id, email, role, password: passwordToHash },
+            'Utente creato con successo.'
         ));
     },
 
@@ -91,13 +99,27 @@ module.exports = {
     // -----------------------------
     async update(req, res) {
         const id = parseInt(req.params.id);
+        const { unitIds, password, ...userData } = req.body;
 
         if (req.userRole !== 'admin' && req.userId !== id) {
             throw new AppError('Accesso negato.', 403);
         }
 
-        const updated = await User.update(id, req.body);
-        if (!updated) throw new AppError('Utente non trovato.', 404);
+        // Se o admin enviou uma nova senha, fazemos o hash
+        if (password) {
+            userData.password_hash = await bcrypt.hash(password, 10);
+        }
+
+        const updated = await User.update(id, userData);
+        if (updated === null) throw new AppError('Utente non trovato.', 404);
+
+        // Atualização de unidades (Lógica: remove todas e insere as novas)
+        if (req.userRole === 'admin' && unitIds) {
+            await User.removeAllUnits(id);
+            for (const unitId of unitIds) {
+                await User.linkToUnit(id, unitId, 'member');
+            }
+        }
 
         res.json(formatResponse(null, 'Utente aggiornato con successo.'));
     },

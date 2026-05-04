@@ -26,6 +26,7 @@ const AdminDashboard = () => {
     clients: 0,
     employees: 0,
     documents: 0,
+    units: 0, // Adicionado
   });
 
   const [recentDocuments, setRecentDocuments] = useState([]);
@@ -37,6 +38,7 @@ const AdminDashboard = () => {
   const [clientChart, setClientChart] = useState({ labels: [], datasets: [] });
   const [employeeChart, setEmployeeChart] = useState({ labels: [], datasets: [] });
   const [documentChart, setDocumentChart] = useState({ labels: [], datasets: [] });
+  const [unitChart, setUnitChart] = useState({ labels: [], datasets: [] }); // Adicionado
 
   const [selectedStatus, setSelectedStatus] = useState("");
   const [clickedStatus, setClickedStatus] = useState("");
@@ -85,47 +87,26 @@ const AdminDashboard = () => {
       else if (selectedStatus === "inactive" || clickedStatus === "inactive")
         statusParam = ["expired"];
 
-      const [resUsers, resMembers, resClients, resEmployees, resDocuments] =
+      // Incluída a chamada para /units
+      const [resUsers, resMembers, resClients, resEmployees, resDocuments, resUnits] =
         await Promise.all([
-          api.get("/users", {
-            params: {
-              unitId: activeUnit.id,
-              ...(statusParam && { status: selectedStatus || clickedStatus }),
-            },
-          }),
-          api.get("/members", {
-            params: {
-              unitId: activeUnit.id,
-              ...(statusParam && { status: selectedStatus || clickedStatus }),
-            },
-          }),
-          api.get("/clients", {
-            params: {
-              unitId: activeUnit.id,
-              ...(statusParam && { status: selectedStatus || clickedStatus }),
-            },
-          }),
-          api.get("/employees", {
-            params: {
-              unitId: activeUnit.id,
-              ...(statusParam && { status: selectedStatus || clickedStatus }),
-            },
-          }),
-          api.get("/documents", {
-            params: { unitId: activeUnit.id },
-          }),
+          api.get("/users", { params: { unitId: activeUnit.id, ...(statusParam && { status: selectedStatus || clickedStatus }) } }),
+          api.get("/members", { params: { unitId: activeUnit.id, ...(statusParam && { status: selectedStatus || clickedStatus }) } }),
+          api.get("/clients", { params: { unitId: activeUnit.id, ...(statusParam && { status: selectedStatus || clickedStatus }) } }),
+          api.get("/employees", { params: { unitId: activeUnit.id, ...(statusParam && { status: selectedStatus || clickedStatus }) } }),
+          api.get("/documents", { params: { unitId: activeUnit.id } }),
+          api.get("/units"), // Chamada global de unidades
         ]);
 
       const usersData = normalizeItems(resUsers);
       const membersData = normalizeItems(resMembers);
       const clientsData = normalizeItems(resClients);
       const employeesData = normalizeItems(resEmployees);
+      const unitsData = normalizeItems(resUnits); // Normalizado
       let documentsData = normalizeItems(resDocuments);
 
       if (statusParam)
-        documentsData = documentsData.filter((d) =>
-          statusParam.includes(d.status)
-        );
+        documentsData = documentsData.filter((d) => statusParam.includes(d.status));
 
       setStats({
         users: usersData.length,
@@ -133,35 +114,36 @@ const AdminDashboard = () => {
         clients: clientsData.length,
         employees: employeesData.length,
         documents: documentsData.length,
+        units: unitsData.length, // Atualizado
       });
 
-      setUserChart(
+      // Lógica do gráfico de unidades (exemplo por status se houver, ou por tipo)
+      setUnitChart(
         buildChartData({
-          active: usersData.filter((u) => u.status === "active").length,
-          inactive: usersData.filter((u) => u.status === "inactive").length,
+          active: unitsData.filter((u) => u.status === "active" || !u.status).length, // Fallback se não houver status
+          inactive: unitsData.filter((u) => u.status === "inactive").length,
         })
       );
 
-      setMemberChart(
-        buildChartData({
-          active: membersData.filter((m) => m.status === "active").length,
-          inactive: membersData.filter((m) => m.status === "inactive").length,
-        })
-      );
+      setUserChart(buildChartData({
+        active: usersData.filter((u) => u.status === "active").length,
+        inactive: usersData.filter((u) => u.status === "inactive").length,
+      }));
 
-      setClientChart(
-        buildChartData({
-          active: clientsData.filter((c) => c.status === "active").length,
-          inactive: clientsData.filter((c) => c.status === "inactive").length,
-        })
-      );
+      setMemberChart(buildChartData({
+        active: membersData.filter((m) => m.status === "active").length,
+        inactive: membersData.filter((m) => m.status === "inactive").length,
+      }));
 
-      setEmployeeChart(
-        buildChartData({
-          active: employeesData.filter((e) => e.status === "active").length,
-          inactive: employeesData.filter((e) => e.status === "inactive").length,
-        })
-      );
+      setClientChart(buildChartData({
+        active: clientsData.filter((c) => c.status === "active").length,
+        inactive: clientsData.filter((c) => c.status === "inactive").length,
+      }));
+
+      setEmployeeChart(buildChartData({
+        active: employeesData.filter((e) => e.status === "active").length,
+        inactive: employeesData.filter((e) => e.status === "inactive").length,
+      }));
 
       const docChartData = {
         valid: documentsData.filter((d) => d.status === "valid").length,
@@ -185,7 +167,6 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!activeUnit || authLoading) return;
-
     fetchDashboardData();
   }, [selectedStatus, clickedStatus, activeUnit?.id, authLoading]);
 
@@ -193,22 +174,17 @@ const AdminDashboard = () => {
 
   const filters = (
     <div className="dashboard-filters">
-
       {user?.units?.length > 0 && (
         <select
           className="form-select"
           value={activeUnit?.id || ""}
           onChange={(e) => {
-            const selected = user.units.find(
-              (u) => u.id === Number(e.target.value)
-            );
+            const selected = user.units.find((u) => u.id === Number(e.target.value));
             changeUnit(selected);
           }}
         >
           {user.units.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
+            <option key={u.id} value={u.id}>{u.name}</option>
           ))}
         </select>
       )}
@@ -238,7 +214,6 @@ const AdminDashboard = () => {
           Reset filtro
         </Button>
       )}
-
     </div>
   );
 
@@ -249,9 +224,14 @@ const AdminDashboard = () => {
       filters={filters}
     >
       <div className="dashboard-kpi-grid">
+        {/* Card de Unidades Adicionada aqui */}
+        <Card title="Unità" link="/units">
+          <div className="kpi-value">{stats.units} risultati</div>
+          <DonutChart data={unitChart} />
+        </Card>
 
         <Card title="Utenti" link="/users">
-          <div className="kpi-value">{stats.users} risultati</div>
+          <div className="kpi-value">{stats.users} resultados</div>
           <DonutChart data={userChart} />
         </Card>
 
@@ -274,15 +254,12 @@ const AdminDashboard = () => {
           <div className="kpi-value">{stats.documents} risultati</div>
           <DonutChart data={documentChart} />
         </Card>
-
       </div>
 
       <div className="dashboard-tables">
-
+        {/* ... (as tabelas recentes permanecem iguais) */}
         <Card title="Ultimi Membri">
-          {recentMembers.length === 0 ? (
-            <EmptyState />
-          ) : (
+          {recentMembers.length === 0 ? <EmptyState /> : (
             <Table
               columns={[
                 { key: "name", label: "Nome" },
@@ -295,9 +272,7 @@ const AdminDashboard = () => {
         </Card>
 
         <Card title="Ultimi Clienti">
-          {recentClients.length === 0 ? (
-            <EmptyState />
-          ) : (
+          {recentClients.length === 0 ? <EmptyState /> : (
             <Table
               columns={[
                 { key: "name", label: "Nome" },
@@ -311,9 +286,7 @@ const AdminDashboard = () => {
         </Card>
 
         <Card title="Ultimi Documenti">
-          {recentDocuments.length === 0 ? (
-            <EmptyState />
-          ) : (
+          {recentDocuments.length === 0 ? <EmptyState /> : (
             <Table
               columns={[
                 { key: "owner_id", label: "Responsabile" },
@@ -325,7 +298,6 @@ const AdminDashboard = () => {
             />
           )}
         </Card>
-
       </div>
 
       {error && <p className="dashboard-error">{error}</p>}

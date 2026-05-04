@@ -6,6 +6,7 @@ import { AuthContext } from "../../contexts/AuthContext";
 import api from "../../api/api";
 import logo from "../../assets/brand/serenity_logotipo.svg";
 import Button from "../../components/ui/Button/Button";
+import WindowControls from "../../components/layout/WindowControls/WindowControls";
 
 import "./auth.css";
 
@@ -87,6 +88,7 @@ const Login = () => {
 
   return (
     <div className="auth">
+      <WindowControls />
       <div className="auth__card">
         <div className="auth__logo">
           <img src={logo} alt="Serenity Club" />

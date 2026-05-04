@@ -12,6 +12,8 @@
 }
 
 .auth {
+    position: relative;
+    padding-top: 32px;
     min-height: 100vh;
     display: flex;
     align-items: center;

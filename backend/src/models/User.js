@@ -32,14 +32,41 @@ module.exports = {
   // -----------------------------
   // Buscar usuário pelo ID
   // -----------------------------
-  getById(id) {
+  async getById(id) {
+    try {
+      const user = await new Promise((resolve, reject) => {
+        const query = `SELECT id, name, email, role, status, created_at FROM users WHERE id = ?`;
+        db.get(query, [id], (err, row) => err ? reject(err) : resolve(row));
+      });
+
+      if (user) {
+        const queryUnits = `
+          SELECT u.id, u.name 
+          FROM units u 
+          JOIN user_units uu ON uu.unit_id = u.id 
+          WHERE uu.user_id = ?
+        `;
+        user.units = await new Promise((resolve, reject) => {
+          db.all(queryUnits, [id], (err, rows) => err ? reject(err) : resolve(rows));
+        });
+      }
+
+      return user;
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  // -----------------------------
+  // Remove todos os vínculos de unidades (Necessário para o Update)
+  // -----------------------------
+  removeAllUnits(userId) {
     return new Promise((resolve, reject) => {
-      const query = `
-        SELECT id, name, email, role, status, created_at
-        FROM users
-        WHERE id = ?
-      `;
-      db.get(query, [id], (err, row) => err ? reject(err) : resolve(row));
+      const query = `DELETE FROM user_units WHERE user_id = ?`;
+      db.run(query, [userId], function (err) {
+        if (err) return reject(err);
+        resolve(this.changes);
+      });
     });
   },
 
@@ -192,7 +219,7 @@ module.exports = {
   // -----------------------------
   update(id, data) {
     return new Promise((resolve, reject) => {
-      const allowed = ['name', 'email', 'status', 'role'];
+      const allowed = ['name', 'email', 'status', 'role', 'password_hash'];
       const entries = Object.entries(data).filter(([key]) => allowed.includes(key));
       if (!entries.length) return resolve(0);
 

@@ -5,6 +5,8 @@ import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 
 import Login from '../pages/Auth/Login';
+import UnitsList from '../pages/Units/UnitsList';
+import UnitForm from '../pages/Units/UnitForm';
 import AdminDashboard from '../pages/Dashboard/AdminDashboard';
 import ExecutiveDashboard from '../pages/Dashboard/ExecutiveDashboard';
 import UsersList from '../pages/Users/UsersList';
@@ -35,6 +37,11 @@ const AppRoutes = () => {
       {/* Login */}
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       <Route path="/" element={!user ? (<Navigate to="/login" />) : user.role === 'admin' ? (<AdminDashboard />) : user.role === 'manager' ? (<ExecutiveDashboard />) : user.role === 'member' ? (<Navigate to="/member" />) : (<Navigate to="/login" />)} />
+
+      {/* Units */}
+      <Route path="/units" element={user && user.role === 'admin' ? <UnitsList /> : <Navigate to="/login" />} />
+      <Route path="/units/new" element={user && user.role === 'admin' ? <UnitForm /> : <Navigate to="/login" />} />
+      <Route path="/units/:id" element={user && user.role === 'admin' ? <UnitForm /> : <Navigate to="/login" />} />
 
       {/* Finance Dashboard */}
       <Route path="/dashboard/finance" element={user && ['admin', 'manager'].includes(user.role) ? <ExecutiveDashboard /> : <Navigate to="/login" />} />

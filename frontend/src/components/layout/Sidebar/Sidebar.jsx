@@ -9,11 +9,12 @@ import "./sidebar.css";
 
 const Sidebar = () => {
   const { user, logout, activeUnit, changeUnit } = useContext(AuthContext);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [openUserMenu, setOpenUserMenu] = useState(false);
   const [openUnitDropdown, setOpenUnitDropdown] = useState(false);
   const userMenuRef = useRef(null);
   const unitDropdownRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const menu = {
     admin: [
@@ -48,8 +49,20 @@ const Sidebar = () => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (expanded && !isHovered && !openUserMenu && !openUnitDropdown) { // Só fecha se o usuário não estiver com o mouse lá
+      const timer = setTimeout(() => {
+        setExpanded(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [expanded, isHovered, openUserMenu, openUnitDropdown]);
+
   return (
-    <aside className={`sidebar ${expanded ? "sidebar--expanded" : ""}`}>
+    <aside className={`sidebar ${expanded ? "sidebar--expanded" : ""}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="sidebar__logo app-drag">
         {expanded ?
           <img src={Logotipo} alt="Serenity Club" className="app-no-drag" /> :
@@ -73,7 +86,11 @@ const Sidebar = () => {
       </nav>
 
       <div className="sidebar__user" ref={userMenuRef}>
-        <button className="sidebar__user-trigger" onClick={() => setOpenUserMenu(!openUserMenu)}>
+        <button
+          className="sidebar__user-trigger"
+          onClick={() => setOpenUserMenu(!openUserMenu)}
+          title={!expanded ? user?.name : ""}
+        >
           <span className="sidebar__user-avatar">{user?.name?.charAt(0).toUpperCase()}</span>
           {expanded && <span className="sidebar__user-name">{user?.name}</span>}
         </button>
@@ -85,24 +102,37 @@ const Sidebar = () => {
               <span>{user?.role}</span>
             </div>
 
+            <hr className="sidebar__menu-divider" />
+
             {user?.units?.length > 1 && (
               <div className="sidebar__user-units" ref={unitDropdownRef}>
-                <button className="sidebar__user-units-trigger">
-                  Unità {!openUnitDropdown && <span className="sidebar__user-active-unit">{activeUnit?.name}</span>}
+                {/* ADICIONADO O ONCLICK AQUI */}
+                <button
+                  className="sidebar__user-units-trigger"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Evita fechar o menu pai
+                    setOpenUnitDropdown(!openUnitDropdown);
+                  }}
+                >
+                  <span className="sidebar__unit-label">📍 Cambia Unità</span>
+                  <span className={`sidebar__chevron-mini ${openUnitDropdown ? "rotated" : ""}`}>›</span>
                 </button>
+
                 {openUnitDropdown && (
                   <div className="sidebar__user-units-list">
                     {user.units.map((unit) => (
                       <button
                         key={unit.id}
+                        className={`sidebar__unit-option ${unit.id === activeUnit?.id ? "active" : ""}`}
                         onClick={() => {
                           changeUnit(unit);
                           setOpenUnitDropdown(false);
                           setOpenUserMenu(false);
                         }}
-                        className={unit.id === activeUnit?.id ? "active" : ""}
                       >
-                        {unit.name} {unit.id === activeUnit?.id && "✔"}
+                        <span className="unit-dot"></span>
+                        {unit.name}
+                        {unit.id === activeUnit?.id && <span className="check-icon">✔</span>}
                       </button>
                     ))}
                   </div>
@@ -110,7 +140,9 @@ const Sidebar = () => {
               </div>
             )}
 
-            <button onClick={logout}>Logout</button>
+            <button className="sidebar__logout-btn" onClick={logout}>
+              🚪 Logout
+            </button>
           </div>
         )}
       </div>

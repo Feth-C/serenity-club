@@ -3,6 +3,7 @@
 const express = require('express');
 
 const authRoutes = require('./authRoutes');
+const unitRoutes = require('./unitRoutes');
 const adminRoutes = require('./adminRoutes');
 const userRoutes = require('./userRoutes');
 const memberRoutes = require('./memberRoutes');
@@ -19,6 +20,7 @@ const sessionRoutes = require('./sessionRoutes');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.use('/units', unitRoutes);
 router.use('/users', userRoutes);
 router.use('/members', memberRoutes);
 router.use('/employees', employeeRoutes);
